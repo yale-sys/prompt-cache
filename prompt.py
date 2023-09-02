@@ -8,6 +8,7 @@ from dataclasses import dataclass
 import lxml
 import lxml.etree
 
+
 # Replaces multiple leading and trailing whitespaces with a single space.
 def compact_spaces(text: str) -> str:
     return re.sub(r'^\s+|\s+$', ' ', text)
@@ -62,50 +63,44 @@ class Llama2ChatPreprocessor(ChatPreprocessor):
         )
 
 
-class Module:
+class ModuleRef:
     name: str
-    parameters: List[Parameter]
-    children: List[Union[Module, TokenSequence]]
+    args: List[Argument]
+    modules: List[ModuleRef]
 
-    def __init__(self, spec: lxml.etree.Element):
-        self._process(spec)
+    def __init__(self, spec: lxml.etree.Element = None):
+        if spec is not None:
+            self._process(spec)
 
     def _process(self, root: lxml.etree.Element):
         self.name = root.tag
-        self.parameters = [Parameter(name, value) for name, value in root.attrib.items()]
+        self.args = [Argument(name, value) for name, value in root.attrib.items()]
 
-        self.children = []
+        self.modules = []
 
         # leading text
         if root.text is not None:
-            text = compact_spaces(root.text)
-            if len(text) > 0:
-                self.children.append(TokenSequence(text))
+            raise ValueError("Module reference cannot have text")
 
         for e in root:
-            self.children.append(Module(e))
+            self.modules.append(ModuleRef(e))
             if e.tail is not None:
-                text = compact_spaces(e.tail)
-                if len(text) > 0:
-                    self.children.append(TokenSequence(text))
+                raise ValueError("Module reference cannot have text")
 
 
 @dataclass
-class Parameter:
+class Argument:
     name: str
     value: str
 
 
-@dataclass
-class TokenSequence:
-    data: str
-
-
-class Prompt:
+class Prompt(ModuleRef):
     schema: str
-    children: List[Union[Module, TokenSequence]]
+    text: str
 
     def __init__(self, spec: Union[str, lxml.etree.Element]):
+
+        super().__init__()
 
         if type(spec) == str:
             parser = lxml.etree.XMLParser(recover=True)
@@ -122,7 +117,8 @@ class Prompt:
         else:
             self.schema = ""  # empty schema
 
-        self.children = []
+        self.name = self.schema
+        self.modules = []
 
         # text only prompt
         if len(root) == 0:
@@ -130,18 +126,18 @@ class Prompt:
             if text is None:
                 raise ValueError("Prompt cannot be empty")
 
-            text = compact_spaces(text)
-            if len(text) > 0:
-                self.children.append(TokenSequence(text))
+            self.text = compact_spaces(text)
 
         else:
             if root.text is not None and len(root.text.strip()) > 0:
                 raise ValueError("Prompt cannot have leading text")
 
+            tail = False
             for e in root:
-                self.children.append(Module(e))
+                if tail:
+                    raise ValueError("Prompt cannot have text between module references")
+
+                self.modules.append(ModuleRef(e))
 
                 if e.tail is not None:
-                    text = compact_spaces(e.tail)
-                    if len(text) > 0:
-                        self.children.append(TokenSequence(text))
+                    self.text = compact_spaces(e.tail)

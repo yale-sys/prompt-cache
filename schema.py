@@ -401,6 +401,9 @@ class Module(Element):
     def parameters(self) -> List[Parameter]:
         return [cast(Parameter, c) for c in self.children if type(c) == Parameter]
 
+    def token_sequences(self) -> List[TokenSequence]:
+        return [cast(TokenSequence, c) for c in self.children if type(c) == TokenSequence]
+
     def contains_union(self) -> bool:
         return self._contains_union
 
@@ -479,11 +482,11 @@ class Scaffold(Element):
         return None
 
     # return all token sequences in this scaffold
-    def token_sequences(self) -> List[TokenSequence]:
+    def all_token_sequences(self) -> List[TokenSequence]:
         ret = []
         for e in self.children:
             if type(e) == Scaffold:
-                ret += cast(Scaffold, e).token_sequences()
+                ret += cast(Scaffold, e).all_token_sequences()
             elif type(e) == TokenSequence:
                 ret.append(cast(TokenSequence, e))
         return ret

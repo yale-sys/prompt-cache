@@ -9,7 +9,7 @@ from transformers import (
     LlamaForCausalLM
 )
 
-from prompt import Preprocessor, Prompt
+from prompt import Preprocessor, Prompt, ModuleRef, Text
 from schema import Parameter, Module, UnionModule, Schema, Tokenizer, TokenSequence, Path
 
 ElementId = int
@@ -43,7 +43,7 @@ class CachedSchema:
         while len(stack) > 0:
             path, is_default_parent, u = stack.pop()
 
-            for e in u.children:
+            for e in u.modules:
                 if type(e) == Module and e.contains_union():
                     stack.append((path + [e.name], is_default_parent, e))
 
@@ -75,7 +75,7 @@ class CachedSchema:
             # iterate through all leaf nodes in target scaffold
             target = scaffold.select(path)
 
-            for tc in target.token_sequences():
+            for tc in target.all_token_sequences():
                 offset = tc.offset
                 length = len(tc)
 
@@ -132,63 +132,66 @@ class CacheEngine:
         argument_ids_list = []
         argument_pos_ids_list = []
 
-        # first add anonymous modules
-        for m in schema.modules:
-            if type(m) == Module:
-                if m.is_anonymous:
-                    kv_cache = cached.get_cache(m.name)
-                    kv_cache_list.append(kv_cache)
+        # first add root level modules
+        stack: List[(ModuleRef, Module)] = [(prompt, schema)]
 
-        # iterate through each tags in root
-        used_modules = []
+        for m in prompt.modules:
 
-        for el in root:
-
-            module = schema.find_module(el.tag)
-
+            module = schema.select(m.name)
             if module is None:
-                raise ValueError(f'There is no such module named {el.tag} in the layout {root.tag}')
+                raise ValueError(f'There is no such module named {m.name} in the schema {schema.name}')
 
-            offset = cached.get_offset(module.name)
-            kv_cache = cached.get_cache(module.name)
-            kv_cache_list.append(kv_cache)
+            stack.append((m, module))
 
-            # check union validity
-            if offset in [cached.get_offset(m.name) for m in used_modules]:
-                raise ValueError(
-                    f"Only one module from union can be used: {module.name} cannot be used with {m.name}")
+        while len(stack) > 0:
+            ref, module = stack.pop()
 
-            used_modules.append(module)
+            # step 1. first add leaf nodes
+            for m in module.token_sequences():
+                kv_cache_list.append(cached.get_cache_l1(m))
 
-            # check parameters
-            for attr_name, attr_value in el.attrib.items():
+            # step 2. process parameter-argument pairs
+            parameters = module.parameters()
+            for arg in ref.args:
 
-                parameter = module.find_parameter(attr_name)
+                parameter = None
+                for p in parameters:
+                    if p.name == arg.name:
+                        parameter = p
+                        break
 
                 if parameter is None:
-                    raise ValueError(f'There is no such parameter named {attr_name} in the module {module.name}')
+                    raise ValueError(f'There is no such parameter named {arg.name} in the module {module.name}')
 
-                # check length
-                argument_ids = self.tokenizer.encode(attr_value, add_special_tokens=False, return_tensors='pt')[0]
+                argument_ids = self.tokenizer.encode(arg.value)
 
                 if len(argument_ids) > parameter.length:
                     raise ValueError(
-                        f'The argument {attr_name} is too long. It should be at most {parameter.length} characters long')
+                        f'The argument {arg.name} is too long. It should be at most {parameter.length} characters long')
 
-                argument_pos_ids = parameter._position_ids[:len(argument_ids)] + offset
+                argument_pos_ids = parameter.position_ids()[:len(argument_ids)]
 
                 argument_ids_list.append(argument_ids)
                 argument_pos_ids_list.append(argument_pos_ids)
 
-        tail_offset = cached.offset + schema.length
-        tail_input_ids = self.tokenizer.encode(root.tail, add_special_tokens=False, return_tensors='pt')[0]
-        tail_position_ids = torch.arange(tail_offset, tail_offset + len(tail_input_ids))
+            # step 3. update stack
+            for m in ref.modules:
+                module = schema.select(m.name)
+                if module is None:
+                    raise ValueError(f'There is no such module named {m.name} in the schema {schema.name}')
 
-        argument_ids_list.append(tail_input_ids)
-        argument_pos_ids_list.append(tail_position_ids)
+                stack.append((m, module))
 
-        input_ids = torch.cat(argument_ids_list)
-        position_ids = torch.cat(argument_pos_ids_list)
+        # add trailing text
+        text_token_ids = self.tokenizer.encode(prompt.text)
+        text_position_ids = torch.arange(len(schema), len(schema) + len(text_token_ids))
+
+        argument_ids_list.append(text_token_ids)
+        argument_pos_ids_list.append(text_position_ids)
+
+        input_ids = torch.LongTensor(argument_ids_list).view(-1)
+        position_ids = torch.LongTensor(argument_pos_ids_list).view(-1)
+
         k_cache = torch.cat([kv_cache[0] for kv_cache in kv_cache_list])
         v_cache = torch.cat([kv_cache[1] for kv_cache in kv_cache_list])
 
