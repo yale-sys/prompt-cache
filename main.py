@@ -1,18 +1,9 @@
-import lxml
-import lxml.etree
-import gc
-from typing import List, Tuple, Union
-from tqdm import tqdm
-import time
-import conversation
-import torch
 from transformers import (
     AutoTokenizer,
 
 )
 
-import schema
-import cache_engine
+from promptcache import schema
 
 model_path = "meta-llama/Llama-2-13b-chat-hf"
 
