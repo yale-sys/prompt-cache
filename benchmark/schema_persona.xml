@@ -1,9 +1,8 @@
 <!-- scenario: 1 -->
 
-<schema name="default">
+<schema name="persona">
     <system>
     </system>
-
 
     <module name="age">
         <union scaffold="default">
