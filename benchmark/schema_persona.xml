@@ -1,5 +1,3 @@
-<!-- scenario: 1 -->
-
 <schema name="persona">
 
     <system>
@@ -10,6 +8,10 @@
         assistant is practical and really does its best, and doesn't let caution get too much in the way of being
         useful.
     </system>
+
+    For the upcoming interaction, I would like you to create a hypothetical character based on a specific MBTI
+    personality type. This personality type will include four indicators that shape the character's responses,
+    demeanor, and overall approach to life.
 
     <module name="age">
         <union scaffold="default">
