@@ -15,6 +15,7 @@ def compact_spaces(text: str) -> str:
 
 
 class Preprocessor(ABC):
+    """This class is used to preprocess the prompt before it is passed to the model."""
 
     def __init__(self):
         pass
@@ -64,6 +65,7 @@ class Llama2ChatPreprocessor(ChatPreprocessor):
 
 
 class ModuleRef:
+    """This class is used to represent a module reference in the prompt."""
     name: str
     args: List[Argument]
     modules: List[ModuleRef]
@@ -95,6 +97,7 @@ class Argument:
 
 
 class Prompt(ModuleRef):
+    """This class is used to represent a prompt."""
     schema: str
     text: str
 
