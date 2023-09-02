@@ -2,10 +2,40 @@
 
 Modular and structured prompt caching for low-latency LLM inference
 
-### Cache schema
+### Evaluation tasks
 
+#### 1. Personalization
+
+LLM is widely used for simulating in-person interactions, each with unique personas.
+Personas are a combination of unique traits from a set of traits, e.g., select one from {chinese, korean, japanese} and
+one from {young, old}.
+
+`PromptCache` allows for efficient caching of prompts for each persona combination, without having to store all possible
+combinations.
+
+#### 2. Code generation
+
+Code generation, e.g., generating python code from natural language description, and
+autocompleting the code based on the context, is a common task in LLM.
+
+Since the code itself is a structured data, `PromptCache` can be used to cache the code generation prompts,
+
+#### 3. Parameterized prompts
+
+Long task prompts typically involves a parameterizable template.
+
+
+
+#### 4. Long contexts
+
+Long contexts about documents, videos, or images are often used in LLM.
+
+
+
+### Prompt schema
 
 #### Example
+
 ```xml
 <!-- Schema is a root module. Schema can contain modules and unions -->
 <schema name="default">
@@ -73,7 +103,9 @@ Modular and structured prompt caching for low-latency LLM inference
 ```
 
 ### Prompt
+
 #### Example
+
 ```xml
 
 <prompt schema="default">
