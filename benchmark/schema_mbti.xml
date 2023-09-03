@@ -14,8 +14,8 @@
         demeanor, and overall approach to life.
 
         For the Extroversion-Introversion indicator,
-        <union scaffold="default">
-            <module name="default">
+        <union scaffold="EI">
+            <module name="EI">
                 This describes how a character responds to social situations and how they recharge their energy.
             </module>
             <module name="E">
@@ -38,8 +38,8 @@
 
         Sensing-Intuition.
         For the Sensing-Intuition indicator,
-        <union scaffold="default">
-            <module name="default">
+        <union scaffold="ST">
+            <module name="ST">
                 This describes how a character processes information and perceives the world around them.
             </module>
             <module name="S">
@@ -61,8 +61,8 @@
         </union>
 
         For the Thinking-Feeling indicator,
-        <union scaffold="default">
-            <module name="default">
+        <union scaffold="TF">
+            <module name="TF">
                 This describes how a character makes decisions and evaluates situations.
             </module>
             <module name="T">
@@ -84,8 +84,8 @@
         </union>
 
         For the Judging-Perceiving indicator,
-        <union scaffold="default">
-            <module name="default">
+        <union scaffold="JP">
+            <module name="JP">
                 This describes how a character approaches life, either with a structured and planned approach or a
                 flexible and adaptable one.
             </module>

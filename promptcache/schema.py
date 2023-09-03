@@ -66,7 +66,7 @@ class Path:
 
         self.path = path
 
-    def __len(self):
+    def __len__(self):
         return len(self.path)
 
     def __str__(self):
