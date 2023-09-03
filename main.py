@@ -3,29 +3,29 @@ from transformers import (
 
 )
 
-from promptcache import Schema, Prompt
+from promptcache import Schema, Prompt, CompactSpaces, FormatLlama2Conversation, read_file
 
 model_path = "meta-llama/Llama-2-13b-chat-hf"
 
 
 # cached conversation template
 
-def read_file(filename) -> str:
-    with open(filename, 'r') as f:
-        return f.read()
-
 
 def main():
-
     tokenizer = AutoTokenizer.from_pretrained(model_path)
 
-    layout = Schema(read_file("./benchmark/schema_mbti.xml"), tokenizer)
+    preproc = [
+        CompactSpaces(),
+        FormatLlama2Conversation()
+    ]
 
-    prompt = Prompt(read_file("./benchmark/prompt_mbti.xml"))
+    schema_raw = read_file("./benchmark/schema_mbti.xml", preproc)
+    prompt_raw = read_file("./benchmark/prompt_mbti.xml", preproc)
 
-    print(layout.name)
-    print(layout)
+    schema = Schema(schema_raw, tokenizer)
+    prompt = Prompt(prompt_raw)
 
+    print(schema)
     print(prompt)
 
 

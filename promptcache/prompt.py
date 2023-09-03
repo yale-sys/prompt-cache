@@ -8,10 +8,35 @@ from dataclasses import dataclass
 import lxml
 import lxml.etree
 
+import xml.sax.saxutils
+
+
+def read_file(filename: str, preprocessors: List[Preprocessor] = None) -> str:
+    with open(filename, 'r') as f:
+
+        text = f.read()
+
+        if preprocessors is not None:
+            for p in preprocessors:
+                text = p(text)
+
+        return text
+
+
+def escape_xml(data):
+    return xml.sax.saxutils.escape(data, entities={
+        "'": "&apos;",
+        "\"": "&quot;"
+    })
+
 
 # Replaces multiple leading and trailing whitespaces with a single space.
-def compact_spaces(text: str) -> str:
+def compact_surrounding_spaces(text: str) -> str:
     return re.sub(r'^\s+|\s+$', ' ', text)
+
+
+def compact_spaces(text: str) -> str:
+    return ' '.join(text.split())
 
 
 class Preprocessor(ABC):
@@ -25,7 +50,23 @@ class Preprocessor(ABC):
         raise NotImplementedError
 
 
-class ChatPreprocessor(Preprocessor):
+class CompactSpaces(Preprocessor):
+    """This class is used to remove all leading and trailing whitespaces."""
+    only_surrounding: bool
+
+    def __init__(self, only_surrounding: bool = False):
+        super().__init__()
+        self.only_surrounding = only_surrounding
+
+    def __call__(self, prompt: str) -> str:
+
+        if self.only_surrounding:
+            return compact_surrounding_spaces(prompt)
+        else:
+            return compact_spaces(prompt)
+
+
+class FormatConversation(Preprocessor):
     system: (str, str, str)
     user: (str, str)
     assistant: (str, str)
@@ -33,9 +74,9 @@ class ChatPreprocessor(Preprocessor):
     def __init__(self, system: (str, str, str), user: (str, str), assistant: (str, str)):
         super().__init__()
 
-        self.system = system
-        self.user = user
-        self.assistant = assistant
+        self.system = (escape_xml(system[0]), escape_xml(system[1]), escape_xml(system[2]))
+        self.user = (escape_xml(user[0]), escape_xml(user[1]))
+        self.assistant = (escape_xml(assistant[0]), escape_xml(assistant[1]))
 
     def __call__(self, prompt: str) -> str:
         replacement_pairs = [
@@ -54,7 +95,7 @@ class ChatPreprocessor(Preprocessor):
         return prompt
 
 
-class Llama2ChatPreprocessor(ChatPreprocessor):
+class FormatLlama2Conversation(FormatConversation):
 
     def __init__(self):
         super().__init__(
@@ -129,7 +170,7 @@ class Prompt(ModuleRef):
             if text is None:
                 raise ValueError("Prompt cannot be empty")
 
-            self.text = compact_spaces(text)
+            self.text = compact_surrounding_spaces(text)
 
         else:
             if root.text is not None and len(root.text.strip()) > 0:
@@ -143,4 +184,4 @@ class Prompt(ModuleRef):
                 self.modules.append(ModuleRef(e))
 
                 if e.tail is not None:
-                    self.text = compact_spaces(e.tail)
+                    self.text = compact_surrounding_spaces(e.tail)

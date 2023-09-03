@@ -14,7 +14,7 @@ from transformers import (
 
 )
 
-from .prompt import compact_spaces
+from .prompt import compact_surrounding_spaces
 
 
 def trim_with_padding(text: str, padding: int = 1) -> str:
@@ -167,6 +167,8 @@ class TokenSequence(Element):
     def __init__(self, offset: int, text: str, tokenizer: Tokenizer):
         super().__init__(offset)
 
+        print(text)
+
         self.text = text
         self._token_ids = tokenizer.encode(text)
         self._position_ids = list(range(self.offset, self.offset + len(self._token_ids)))
@@ -297,7 +299,7 @@ class Module(Element):
 
         # prefix text
         if root.text is not None:
-            text = compact_spaces(root.text)
+            text = compact_surrounding_spaces(root.text)
             if len(text) > 0:
                 seq = TokenSequence(offset, text, tokenizer)
                 self.children.append(seq)
@@ -333,14 +335,14 @@ class Module(Element):
                         raise ValueError(f"Parameter {m.name} is already defined")
 
                 case _:
-                    m = TokenSequence(offset, e.tostring(), tokenizer)
+                    m = TokenSequence(offset, lxml.etree.tostring(e), tokenizer)
 
             self.children.append(m)
             offset += len(m)
 
             # process tailing text
             if e.tail is not None:
-                text = compact_spaces(e.tail)
+                text = compact_surrounding_spaces(e.tail)
                 if len(text) > 0:
                     seq = TokenSequence(offset, text, tokenizer)
                     self.children.append(seq)
