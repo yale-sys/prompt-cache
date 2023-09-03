@@ -9,17 +9,16 @@ from transformers import (
     LlamaForCausalLM
 )
 
-from prompt import Preprocessor, Prompt, ModuleRef, Text
-from schema import Parameter, Module, UnionModule, Schema, Tokenizer, TokenSequence, Path
+from .prompt import Preprocessor, Prompt, ModuleRef
+from .schema import Parameter, Module, UnionModule, Schema, Tokenizer, TokenSequence, Path
 
-ElementId = int
 KVCache = Tuple[torch.Tensor, torch.Tensor]
 
 
 class CachedSchema:
     schema: Schema
-    cache_l1: Dict[ElementId, KVCache]
-    cache_l2: Dict[(ElementId, ElementId), (KVCache, KVCache)]
+    cache_l1: Dict[int, KVCache]
+    cache_l2: Dict[Tuple[int, int], Tuple[KVCache, KVCache]]
 
     model: LlamaForCausalLM
 
@@ -87,7 +86,7 @@ class CachedSchema:
             return None
         return self.cache_l1[seq_id]
 
-    def get_cache_l2(self, seq1: TokenSequence, seq2: TokenSequence) -> Union[(KVCache, KVCache), None]:
+    def get_cache_l2(self, seq1: TokenSequence, seq2: TokenSequence) -> Union[Tuple[KVCache, KVCache], None]:
         seq1_id, seq2_id = max(id(seq1), id(seq2)), min(id(seq1), id(seq2))
         if (seq1_id, seq2_id) not in self.cache_l2:
             return None

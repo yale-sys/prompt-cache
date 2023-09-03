@@ -1,10 +1,7 @@
 <prompt schema="mbti">
-    <E/>
-    <N/>
-    <T/>
-    <P/>
+    <E/><N/><T/><P/>
     <user>
-        Could you now craft a narrative for Alex? Please develop a story that revolves around Alex, incorporating his
+        Could you craft a narrative for Alex? Please develop a story that revolves around Alex, incorporating his
         characteristics into the narrative.
     </user>
 </prompt>

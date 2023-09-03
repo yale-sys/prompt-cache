@@ -2,25 +2,19 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-import copy
 import re
 
 import lxml
 import lxml.etree
-import gc
+
 from typing import List, Union, Dict, cast, Tuple
-from tqdm import tqdm
-import time
-import conversation
-import torch
+
 from transformers import (
-    AutoTokenizer,
     LlamaTokenizer,
-    LlamaForCausalLM,
 
 )
 
-from prompt import compact_spaces
+from .prompt import compact_spaces
 
 
 def trim_with_padding(text: str, padding: int = 1) -> str:
