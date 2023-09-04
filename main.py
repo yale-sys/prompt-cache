@@ -19,8 +19,10 @@ def main():
         FormatLlama2Conversation()
     ]
 
-    schema_raw = read_file("./benchmark/schema_mbti.xml", preproc)
+    schema_raw = read_file("./benchmark/schema_mbti_short.xml", preproc)
     prompt_raw = read_file("./benchmark/prompt_mbti.xml", preproc)
+
+    print(tokenizer.tokenize("Sensing-Intuition. For the Sensing-Intuition indicator, "))
 
     schema = Schema(schema_raw, tokenizer)
     prompt = Prompt(prompt_raw)

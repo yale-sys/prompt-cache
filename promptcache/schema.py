@@ -188,7 +188,7 @@ class TokenSequence(Element):
         return len(self._token_ids)
 
     def __repr__(self) -> str:
-        return super().__repr__() + f" Text: {self.text}"
+        return super().__repr__() + f" Text: {repr(self.text)}"
 
     def token_ids(self) -> List[int]:
         raise self._token_ids
@@ -368,7 +368,7 @@ class Module(Element):
                     self.children.append(seq)
                     offset += len(seq)
 
-        self.length = offset
+        self.length = offset - self.offset
 
     def __len__(self) -> int:
         return self.length
@@ -528,9 +528,3 @@ class Schema(Module):
         super().__init__(0, spec, tokenizer, is_root=True)
 
         self.tokenizer = tokenizer
-
-    def __repr__(self) -> str:
-        r = super().__repr__() + f" Schema @{self.name}"
-        for m in self.children:
-            r += '\n' + repr_indent(m)
-        return r

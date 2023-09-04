@@ -2,13 +2,17 @@ from __future__ import annotations
 
 import re
 from abc import ABC, abstractmethod
-from typing import Union, List
+from typing import Union, List, Any
 from dataclasses import dataclass
 
 import lxml
 import lxml.etree
 
 import xml.sax.saxutils
+
+
+def repr_indent(obj: Any, indent: int = 1) -> str:
+    return '\n'.join([indent * '\t' + s for s in repr(obj).split('\n')])
 
 
 def read_file(filename: str, preprocessors: List[Preprocessor] = None) -> str:
@@ -130,6 +134,18 @@ class ModuleRef:
             if e.tail is not None:
                 raise ValueError("Module reference cannot have text")
 
+    def __repr__(self) -> str:
+
+        args = " ".join([f"{arg.name}={repr(arg.value)}" for arg in self.args])
+        if len(args) > 0:
+            r = f"@{self.name}({args})"
+        else:
+            r = f"@{self.name}"
+
+        for m in self.modules:
+            r += '\n' + repr_indent(m)
+        return r
+
 
 @dataclass
 class Argument:
@@ -185,3 +201,10 @@ class Prompt(ModuleRef):
 
                 if e.tail is not None:
                     self.text = compact_surrounding_spaces(e.tail)
+
+    def __repr__(self) -> str:
+        r = f"Schema: @{self.name}"
+        for m in self.modules:
+            r += '\n' + repr_indent(m)
+        r += '\nText: ' + repr(self.text)
+        return r
