@@ -93,6 +93,9 @@ class FormatConversation(Preprocessor):
             ("</assistant>", self.assistant[1])
         ]
 
+        # remove space before <system>
+        prompt = re.sub(r' +<system>', '<system>', prompt)
+
         for old, new in replacement_pairs:
             prompt = prompt.replace(old, new)
 

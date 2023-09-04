@@ -1,18 +1,25 @@
 from transformers import (
-    AutoTokenizer,
+    AutoTokenizer, LlamaForCausalLM, LlamaTokenizer,
 
 )
 
-from promptcache import Schema, Prompt, CompactSpaces, FormatLlama2Conversation, read_file
+from promptcache import Schema, Prompt, CompactSpaces, FormatLlama2Conversation, read_file, CacheEngine
 
-model_path = "meta-llama/Llama-2-13b-chat-hf"
+model_path = "meta-llama/Llama-2-7b-chat-hf"
 
 
 # cached conversation template
 
 
 def main():
-    tokenizer = AutoTokenizer.from_pretrained(model_path)
+    tokenizer = LlamaTokenizer.from_pretrained(model_path)
+    model = LlamaForCausalLM.from_pretrained(model_path,
+                                             load_in_8bit=True,
+                                             device_map="auto")
+    engine = CacheEngine(model, tokenizer)
+
+    max_vocab = model.base_model.config.vocab_size
+    print(max_vocab)
 
     preproc = [
         CompactSpaces(),
@@ -22,10 +29,10 @@ def main():
     schema_raw = read_file("./benchmark/schema_mbti_short.xml", preproc)
     prompt_raw = read_file("./benchmark/prompt_mbti.xml", preproc)
 
-    print(tokenizer.tokenize("Sensing-Intuition. For the Sensing-Intuition indicator, "))
-
     schema = Schema(schema_raw, tokenizer)
     prompt = Prompt(prompt_raw)
+
+    engine.add_schema(schema)
 
     print(schema)
     print(prompt)

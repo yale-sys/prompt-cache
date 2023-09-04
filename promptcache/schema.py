@@ -84,8 +84,12 @@ class Path:
         return len(self.path) == 0
 
     @property
-    def head(self) -> str:
-        return self.path[0]
+    def head(self) -> Union[str, None]:
+        return None if self.is_empty else self.path[0]
+
+    @property
+    def is_empty(self) -> bool:
+        return len(self.path) == 0
 
     @property
     def next(self) -> Path:
@@ -181,20 +185,20 @@ class TokenSequence(Element):
         super().__init__(offset)
 
         self.text = text
-        self._token_ids = tokenizer.encode(text)
+        self._token_ids = tokenizer.encode(text)[1:]  # Warning: this is a hack to remove bos_token
         self._position_ids = list(range(self.offset, self.offset + len(self._token_ids)))
 
     def __len__(self) -> int:
         return len(self._token_ids)
 
     def __repr__(self) -> str:
-        return super().__repr__() + f" Text: {repr(self.text)}"
+        return super().__repr__() + f" Text: {repr(self.text)}" + "\n" + repr(self.token_ids())
 
     def token_ids(self) -> List[int]:
-        raise self._token_ids
+        return self._token_ids
 
     def position_ids(self) -> List[int]:
-        raise self._position_ids
+        return self._position_ids
 
 
 class UnionModule(Element):
@@ -253,7 +257,11 @@ class UnionModule(Element):
     def position_ids(self) -> List[int]:
         raise ValueError("Cannot get position_ids() on union. Try again on its scaffold")
 
-    def select(self, path: Union[str, Path]) -> Union[Module, None]:
+    def select(self, path: Union[str, Path] = None) -> Union[Module, None]:
+
+        if path is None:
+            return self.select(self.scaffold_name)
+
         if type(path) == str:
             path = Path(path)
 

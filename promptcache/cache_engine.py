@@ -42,7 +42,7 @@ class CachedSchema:
         while len(stack) > 0:
             path, is_default_parent, u = stack.pop()
 
-            for e in u.modules:
+            for e in u.children:
                 if type(e) == Module and e.contains_union():
                     stack.append((path + [e.name], is_default_parent, e))
 
@@ -64,12 +64,22 @@ class CachedSchema:
             token_ids = scaffold.token_ids()
             position_ids = scaffold.position_ids()
 
+            #print(position_ids)
+
+            # xxx = torch.tensor([token_ids], device=self.model.device, dtype=torch.long)
+            # vvv = self.model.get_input_embeddings()(xxx)
+            # print(vvv.shape)
+            # print('no issue')
+
             d_output = self.model(
-                input_ids=torch.LongTensor([token_ids], device=self.model.device),
-                position_ids=torch.LongTensor([position_ids], device=self.model.device),
+                input_ids=torch.tensor([token_ids], device=self.model.device, dtype=torch.long),
+                #position_ids=torch.tensor([position_ids], device=self.model.device, dtype=torch.long),
             )
 
-            k_cache, v_cache = d_output.past_key_values
+            #print(d_output.past_key_values[0].shape)
+            #print(d_output.past_key_values[1].shape)
+
+            k_cache, v_cache = d_output.past_key_values[0]
 
             # iterate through all leaf nodes in target scaffold
             target = scaffold.select(path)
@@ -188,8 +198,8 @@ class CacheEngine:
         argument_ids_list.append(text_token_ids)
         argument_pos_ids_list.append(text_position_ids)
 
-        input_ids = torch.LongTensor(argument_ids_list).view(-1)
-        position_ids = torch.LongTensor(argument_pos_ids_list).view(-1)
+        input_ids = torch.tensor(argument_ids_list, dtype=torch.long).view(-1)
+        position_ids = torch.tensor(argument_pos_ids_list, dtype=torch.long).view(-1)
 
         k_cache = torch.cat([kv_cache[0] for kv_cache in kv_cache_list])
         v_cache = torch.cat([kv_cache[1] for kv_cache in kv_cache_list])
