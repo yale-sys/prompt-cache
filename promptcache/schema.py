@@ -7,7 +7,7 @@ import re
 import lxml
 import lxml.etree
 
-from typing import List, Union, Dict, cast, Tuple
+from typing import List, Union, Dict, cast, Tuple, Any
 
 from transformers import (
     LlamaTokenizer,
@@ -25,6 +25,10 @@ def trim_with_padding(text: str, padding: int = 1) -> str:
 def is_valid_xml_element_name(name: str) -> bool:
     pattern = r"^[a-zA-Z_][a-zA-Z0-9_\-.]*$"
     return bool(re.fullmatch(pattern, name))
+
+
+def repr_indent(obj: Any, indent: int = 1) -> str:
+    return '\n'.join([indent * '\t' + s for s in repr(obj).split('\n')])
 
 
 # Wrapper around LlamaTokenizer
@@ -72,6 +76,9 @@ class Path:
     def __str__(self):
         return '/'.join(self.path)
 
+    def __repr__(self):
+        return str(self)
+
     @property
     def is_root(self) -> bool:
         return len(self.path) == 0
@@ -96,6 +103,9 @@ class Element(ABC):
     @abstractmethod
     def __len__(self) -> int:
         raise NotImplementedError
+
+    def __repr__(self):
+        return f"[{self.offset}:{self.offset + len(self)}]"
 
     @abstractmethod
     def token_ids(self) -> List[int]:
@@ -152,6 +162,9 @@ class Parameter(Element):
     def __len__(self) -> int:
         return self.length
 
+    def __repr__(self) -> str:
+        return super().__repr__() + f" Parameter @{self.name}"
+
     def token_ids(self) -> List[int]:
         raise self._token_ids
 
@@ -167,14 +180,15 @@ class TokenSequence(Element):
     def __init__(self, offset: int, text: str, tokenizer: Tokenizer):
         super().__init__(offset)
 
-        print(text)
-
         self.text = text
         self._token_ids = tokenizer.encode(text)
         self._position_ids = list(range(self.offset, self.offset + len(self._token_ids)))
 
     def __len__(self) -> int:
         return len(self._token_ids)
+
+    def __repr__(self) -> str:
+        return super().__repr__() + f" Text: {self.text}"
 
     def token_ids(self) -> List[int]:
         raise self._token_ids
@@ -226,6 +240,12 @@ class UnionModule(Element):
 
     def __len__(self) -> int:
         return self.length
+
+    def __repr__(self) -> str:
+        r = super().__repr__() + " Union"
+        for m in self.modules:
+            r += '\n' + repr_indent(m)
+        return r
 
     def token_ids(self) -> List[int]:
         raise ValueError("Cannot get token_ids() on union. Try again on its scaffold")
@@ -353,6 +373,12 @@ class Module(Element):
     def __len__(self) -> int:
         return self.length
 
+    def __repr__(self) -> str:
+        r = super().__repr__() + f" Module @{self.name}"
+        for m in self.children:
+            r += '\n' + repr_indent(m)
+        return r
+
     def token_ids(self) -> List[int]:
         if self.contains_union():
             raise ValueError("Cannot get token_ids() on module that contains union. Try again on its scaffold")
@@ -454,6 +480,12 @@ class Scaffold(Element):
     def __len__(self):
         return self.module.length
 
+    def __repr__(self) -> str:
+        r = super().__repr__() + f" Scaffold @{self.name}"
+        for m in self.children:
+            r += '\n' + repr_indent(m)
+        return r
+
     def token_ids(self) -> List[int]:
         return [e for c in self.children for e in c.token_ids()]
 
@@ -496,3 +528,9 @@ class Schema(Module):
         super().__init__(0, spec, tokenizer, is_root=True)
 
         self.tokenizer = tokenizer
+
+    def __repr__(self) -> str:
+        r = super().__repr__() + f" Schema @{self.name}"
+        for m in self.children:
+            r += '\n' + repr_indent(m)
+        return r
