@@ -2,6 +2,7 @@ import lxml
 import lxml.etree
 from typing import List, Tuple, Union, Dict, cast, Optional
 from tqdm import tqdm
+import itertools
 
 import torch
 from transformers import (
@@ -124,7 +125,7 @@ class CacheEngine:
             return None
         return self.schemas[name].schema
 
-    def process(self, prompt: Prompt) -> Tuple[torch.Tensor, torch.Tensor, KVCache]:
+    def process(self, prompt: Prompt) -> Tuple[List[int], List[int], KVCache]:
 
         # assert that root tag matches engine signature
         if prompt.schema not in self.schemas:
@@ -194,8 +195,8 @@ class CacheEngine:
         argument_ids_list.append(text_token_ids)
         argument_pos_ids_list.append(text_position_ids)
 
-        input_ids = torch.tensor(argument_ids_list, dtype=torch.long).view(-1)
-        position_ids = torch.tensor(argument_pos_ids_list, dtype=torch.long).view(-1)
+        input_ids = list(itertools.chain(*argument_ids_list))
+        position_ids = list(itertools.chain(*argument_pos_ids_list))
 
         # print([kv_cache[0].shape for kv_cache in kv_cache_list])
 

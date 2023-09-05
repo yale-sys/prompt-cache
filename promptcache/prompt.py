@@ -212,3 +212,4 @@ class Prompt(ModuleRef):
             r += '\n' + repr_indent(m)
         r += '\nText: ' + repr(self.text)
         return r
+
