@@ -8,7 +8,7 @@ Modular and structured prompt caching for low-latency LLM inference
 Install editable `transformers` by
 ```bash
 git clone https://github.com/huggingface/transformers
-cd t
+cd transformers
 pip install -e .
 ```
 
