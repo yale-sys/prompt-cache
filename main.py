@@ -29,10 +29,12 @@ def main():
     schema = Schema(schema_raw, tokenizer)
     prompt = Prompt(prompt_raw)
 
-    engine.add_schema(schema)
-
     print(schema)
     print(prompt)
+
+    engine.add_schema(schema)
+
+    res = engine.process(prompt)
 
 
 if __name__ == "__main__":

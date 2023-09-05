@@ -59,7 +59,7 @@ class CachedSchema:
         # For each path, update every leaf nodes (token sequence) under that path
         for path in paths_l1:
 
-            print("Processing..", path)
+            print(f"Caching module @{path}...")
             scaffold = self.schema.get_scaffold(path)
 
             token_ids = scaffold.token_ids()
@@ -77,15 +77,14 @@ class CachedSchema:
             # print(d_output.past_key_values[1].shape)
 
             k_cache, v_cache = d_output.past_key_values[0]
-
             # iterate through all leaf nodes in target scaffold
             target = scaffold.select(path)
 
             for tc in target.all_token_sequences():
                 offset = tc.offset
                 length = len(tc)
-
-                self.cache_l1[id(tc)] = k_cache[offset:offset + length], v_cache[offset:offset + length]
+                o = position_ids.index(offset)
+                self.cache_l1[id(tc)] = k_cache[:, :, o:o + length, :], v_cache[:, :, o:o + length, :]
 
     def get_cache_l1(self, seq: TokenSequence) -> Union[KVCache, None]:
         seq_id = id(seq)
@@ -190,7 +189,7 @@ class CacheEngine:
 
         # add trailing text
         text_token_ids = self.tokenizer.encode(prompt.text)
-        text_position_ids = torch.arange(len(schema), len(schema) + len(text_token_ids))
+        text_position_ids = list(range(len(schema), len(schema) + len(text_token_ids)))
 
         argument_ids_list.append(text_token_ids)
         argument_pos_ids_list.append(text_position_ids)
@@ -198,8 +197,10 @@ class CacheEngine:
         input_ids = torch.tensor(argument_ids_list, dtype=torch.long).view(-1)
         position_ids = torch.tensor(argument_pos_ids_list, dtype=torch.long).view(-1)
 
-        k_cache = torch.cat([kv_cache[0] for kv_cache in kv_cache_list])
-        v_cache = torch.cat([kv_cache[1] for kv_cache in kv_cache_list])
+        # print([kv_cache[0].shape for kv_cache in kv_cache_list])
+
+        k_cache = torch.cat([kv_cache[0] for kv_cache in kv_cache_list], dim=2)
+        v_cache = torch.cat([kv_cache[1] for kv_cache in kv_cache_list], dim=2)
 
         kv_cache = (k_cache, v_cache)
 

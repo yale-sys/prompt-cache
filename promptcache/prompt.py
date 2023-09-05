@@ -164,6 +164,7 @@ class Prompt(ModuleRef):
     def __init__(self, spec: Union[str, lxml.etree.Element]):
 
         super().__init__()
+        self.args = []
 
         if type(spec) == str:
             parser = lxml.etree.XMLParser(recover=True)

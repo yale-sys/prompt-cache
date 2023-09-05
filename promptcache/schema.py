@@ -192,7 +192,7 @@ class TokenSequence(Element):
         return len(self._token_ids)
 
     def __repr__(self) -> str:
-        return super().__repr__() + f" Text: {repr(self.text)}" + "\n" + repr(self.token_ids())
+        return super().__repr__() + f" Text: {repr(self.text)}" + "\n\t" + repr(self.token_ids())
 
     def token_ids(self) -> List[int]:
         return self._token_ids

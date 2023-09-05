@@ -96,7 +96,6 @@ def generate_stream(
             past_key_values = out.past_key_values
         else:
 
-            print(token)
             out = model(
                 input_ids=torch.as_tensor([[token]], device=device),
                 use_cache=True,
