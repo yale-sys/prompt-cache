@@ -18,9 +18,6 @@ def main():
                                              device_map="auto")
     engine = CacheEngine(model, tokenizer)
 
-    max_vocab = model.base_model.config.vocab_size
-    print(max_vocab)
-
     preproc = [
         CompactSpaces(),
         FormatLlama2Conversation()

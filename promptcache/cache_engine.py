@@ -65,14 +65,12 @@ class CachedSchema:
             token_ids = scaffold.token_ids()
             position_ids = scaffold.position_ids()
 
-            # xxx = torch.tensor([token_ids], device=self.model.device, dtype=torch.long)
-            # vvv = self.model.get_input_embeddings()(xxx)
-            # print(vvv.shape)
-            # print('no issue')
+            # replace modeling_llama.py line 334
+            #         cos, sin = self.rotary_emb(value_states, seq_len=torch.max(position_ids) + 1)
 
             d_output = self.model(
                 input_ids=torch.tensor([token_ids], device=self.model.device, dtype=torch.long),
-                # position_ids=torch.tensor([position_ids], device=self.model.device, dtype=torch.long),
+                position_ids=torch.tensor([position_ids], device=self.model.device, dtype=torch.long),
             )
 
             # print(d_output.past_key_values[0].shape)

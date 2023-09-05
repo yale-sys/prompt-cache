@@ -2,6 +2,28 @@
 
 Modular and structured prompt caching for low-latency LLM inference
 
+### Setup
+
+
+Install editable `transformers` by
+```bash
+git clone https://github.com/huggingface/transformers
+cd t
+pip install -e .
+```
+
+Then, modify `transformers/models/llama/modeling_llama.py` [L332](https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/modeling_llama.py#L332)
+To support sparse position ids
+```python
+# from this
+cos, sin = self.rotary_emb(value_states, seq_len=kv_seq_len)
+
+# to this
+cos, sin = self.rotary_emb(value_states, seq_len=torch.max(position_ids) + 1)
+```
+
+
+
 ### Evaluation tasks
 
 #### 1. Personalization
