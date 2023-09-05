@@ -44,27 +44,26 @@ class CachedSchema:
 
             for e in u.children:
                 if type(e) == Module and e.contains_union():
-                    stack.append((path + [e.name], is_default_parent, e))
+                    stack.append((path + [u.name], is_default_parent, e))
 
                 elif type(e) == UnionModule:
                     for n in e.modules:
                         is_default = e.scaffold_name == n.name and is_default_parent
 
                         if n.contains_union():
-                            stack.append((path + [e.name], is_default, n))
+                            stack.append((path + [u.name], is_default, n))
 
                         if not is_default:
-                            paths_l1.append(path + [e.name])
+                            paths_l1.append(Path(path + [u.name, n.name]).next)
 
         # For each path, update every leaf nodes (token sequence) under that path
         for path in paths_l1:
 
+            print("Processing..", path)
             scaffold = self.schema.get_scaffold(path)
 
             token_ids = scaffold.token_ids()
             position_ids = scaffold.position_ids()
-
-            #print(position_ids)
 
             # xxx = torch.tensor([token_ids], device=self.model.device, dtype=torch.long)
             # vvv = self.model.get_input_embeddings()(xxx)
@@ -73,11 +72,11 @@ class CachedSchema:
 
             d_output = self.model(
                 input_ids=torch.tensor([token_ids], device=self.model.device, dtype=torch.long),
-                #position_ids=torch.tensor([position_ids], device=self.model.device, dtype=torch.long),
+                # position_ids=torch.tensor([position_ids], device=self.model.device, dtype=torch.long),
             )
 
-            #print(d_output.past_key_values[0].shape)
-            #print(d_output.past_key_values[1].shape)
+            # print(d_output.past_key_values[0].shape)
+            # print(d_output.past_key_values[1].shape)
 
             k_cache, v_cache = d_output.past_key_values[0]
 
