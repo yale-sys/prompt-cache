@@ -13,7 +13,8 @@ from transformers import (
 from .prompt import Preprocessor, Prompt, ModuleRef
 from .schema import Parameter, Module, UnionModule, Schema, Tokenizer, TokenSequence, Path
 
-KVCache = Tuple[torch.Tensor, torch.Tensor]
+# list - each decoding layer in transformer
+KVCache = List[Tuple[torch.Tensor, torch.Tensor]]
 
 
 class CachedSchema:
@@ -77,15 +78,23 @@ class CachedSchema:
             # print(d_output.past_key_values[0].shape)
             # print(d_output.past_key_values[1].shape)
 
-            k_cache, v_cache = d_output.past_key_values[0]
+            kv_cache = d_output.past_key_values
             # iterate through all leaf nodes in target scaffold
             target = scaffold.select(path)
 
             for tc in target.all_token_sequences():
                 offset = tc.offset
                 length = len(tc)
-                o = position_ids.index(offset)
-                self.cache_l1[id(tc)] = k_cache[:, :, o:o + length, :], v_cache[:, :, o:o + length, :]
+
+                # why not just use tc.offset?
+                # this is because the offset is not always the same as the position_ids
+                # they might be mixed up. (but each token sequence is guaranteed to be continuous)
+                st = position_ids.index(offset)
+                ed = st + length
+
+                self.cache_l1[id(tc)] = [(kv_cache[i][0][:, :, st:ed, :].detach().cpu(),
+                                          kv_cache[i][1][:, :, st:ed, :].detach().cpu())
+                                         for i in range(len(kv_cache))]
 
     def get_cache_l1(self, seq: TokenSequence) -> Optional[KVCache]:
         seq_id = id(seq)
@@ -199,10 +208,13 @@ class CacheEngine:
         position_ids = list(itertools.chain(*argument_pos_ids_list))
 
         # print([kv_cache[0].shape for kv_cache in kv_cache_list])
+        num_layers = len(kv_cache_list[0])
 
-        k_cache = torch.cat([kv_cache[0] for kv_cache in kv_cache_list], dim=2)
-        v_cache = torch.cat([kv_cache[1] for kv_cache in kv_cache_list], dim=2)
+        out_kv_cache = []
 
-        kv_cache = (k_cache, v_cache)
+        for i in range(num_layers):
+            k_cache_i = torch.cat([kv_cache[i][0] for kv_cache in kv_cache_list], dim=2)
+            v_cache_i = torch.cat([kv_cache[i][1] for kv_cache in kv_cache_list], dim=2)
+            out_kv_cache.append((k_cache_i, v_cache_i))
 
-        return input_ids, position_ids, kv_cache
+        return input_ids, position_ids, out_kv_cache

@@ -57,7 +57,7 @@ def main():
 
         prompt = Prompt(prompt_text)
         token_ids, position_ids, cache = cache_engine.process(prompt)
-
+        cache = None
         output_stream = gen_engine.generate(token_ids, position_ids, parameter, cache, stream_interval=2)
 
         print(f"Assistant: ", end="", flush=True)

@@ -68,6 +68,9 @@ class GenerationEngine:
         token_ids = torch.tensor([token_ids], device=self.model.device, dtype=torch.long)
         position_ids = torch.tensor([position_ids], device=self.model.device, dtype=torch.long)
 
+        if cache is not None:
+            cache = [(cache[i][0].to(self.model.device), cache[i][1].to(self.model.device)) for i in range(len(cache))]
+
         for i in range(params.max_new_tokens):
 
             if cache is None:
@@ -75,6 +78,7 @@ class GenerationEngine:
                                  position_ids=position_ids,
                                  use_cache=False)
             else:
+
                 out = self.model(input_ids=token_ids,
                                  position_ids=position_ids,
                                  past_key_values=cache,
@@ -121,5 +125,6 @@ class GenerationEngine:
                 break
 
         # clean
+        del past_key_values, out
         gc.collect()
         torch.cuda.empty_cache()
