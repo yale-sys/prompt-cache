@@ -7,7 +7,7 @@ import re
 import lxml
 import lxml.etree
 
-from typing import List, Union, Dict, cast, Tuple, Any
+from typing import List, Union, Dict, cast, Tuple, Any, Optional
 
 from transformers import (
     LlamaTokenizer,
@@ -55,7 +55,7 @@ class Tokenizer:
 class Path:
     path: List[str]
 
-    def __init__(self, path: Union[str, List[str]] = None):
+    def __init__(self, path: Optional[Union[str, List[str]]] = None):
 
         if path is None:
             path = []
@@ -84,7 +84,7 @@ class Path:
         return len(self.path) == 0
 
     @property
-    def head(self) -> Union[str, None]:
+    def head(self) -> Optional[str]:
         return None if self.is_empty else self.path[0]
 
     @property
@@ -100,7 +100,7 @@ class Element(ABC):
     name: Union[None, str]
     offset: int
 
-    def __init__(self, offset: int, name: str = None):
+    def __init__(self, offset: int, name: Optional[str] = None):
         self.name = name
         self.offset = offset
 
@@ -257,7 +257,7 @@ class UnionModule(Element):
     def position_ids(self) -> List[int]:
         raise ValueError("Cannot get position_ids() on union. Try again on its scaffold")
 
-    def select(self, path: Union[str, Path] = None) -> Union[Module, None]:
+    def select(self, path: Optional[Union[str, Path]] = None) -> Optional[Module]:
 
         if path is None:
             return self.select(self.scaffold_name)
@@ -402,7 +402,7 @@ class Module(Element):
     def get_scaffold(self, *paths: Path) -> Scaffold:
         return Scaffold(self, *paths)
 
-    def select(self, path: Union[str, Path]) -> Union[Module, None]:
+    def select(self, path: Union[str, Path]) -> Optional[Module]:
         if type(path) == str:
             path = Path(path)
 
@@ -500,7 +500,7 @@ class Scaffold(Element):
     def position_ids(self) -> List[int]:
         return [e for c in self.children for e in c.position_ids()]
 
-    def select(self, path: Union[str, Path]) -> Union[Scaffold, None]:
+    def select(self, path: Union[str, Path]) -> Optional[Scaffold]:
         if type(path) == str:
             path = Path(path)
 

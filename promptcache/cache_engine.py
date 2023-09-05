@@ -1,6 +1,6 @@
 import lxml
 import lxml.etree
-from typing import List, Tuple, Union, Dict, cast
+from typing import List, Tuple, Union, Dict, cast, Optional
 from tqdm import tqdm
 
 import torch
@@ -86,13 +86,13 @@ class CachedSchema:
                 o = position_ids.index(offset)
                 self.cache_l1[id(tc)] = k_cache[:, :, o:o + length, :], v_cache[:, :, o:o + length, :]
 
-    def get_cache_l1(self, seq: TokenSequence) -> Union[KVCache, None]:
+    def get_cache_l1(self, seq: TokenSequence) -> Optional[KVCache]:
         seq_id = id(seq)
         if seq_id not in self.cache_l1:
             return None
         return self.cache_l1[seq_id]
 
-    def get_cache_l2(self, seq1: TokenSequence, seq2: TokenSequence) -> Union[Tuple[KVCache, KVCache], None]:
+    def get_cache_l2(self, seq1: TokenSequence, seq2: TokenSequence) -> Optional[Tuple[KVCache, KVCache]]:
         seq1_id, seq2_id = max(id(seq1), id(seq2)), min(id(seq1), id(seq2))
         if (seq1_id, seq2_id) not in self.cache_l2:
             return None
@@ -119,7 +119,7 @@ class CacheEngine:
 
         self.schemas[schema.name] = CachedSchema(schema, self.model)
 
-    def get_schema(self, name: str) -> Union[Schema, None]:
+    def get_schema(self, name: str) -> Optional[Schema]:
         if name not in self.schemas:
             return None
         return self.schemas[name].schema
