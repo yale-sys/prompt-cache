@@ -4,7 +4,8 @@ Modular and structured prompt caching for low-latency LLM inference
 
 ### Setup
 
-Current inference engine is based on [llama2](https://huggingface.co/meta-llama/Llama-2-7b-chat-hf) model hosted on HF. Make sure that you
+Current inference engine is based on [llama2](https://huggingface.co/meta-llama/Llama-2-7b-chat-hf) model hosted on HF.
+Make sure that you
 have access to it. You may use other LLMs, but you need to modify the chat preprocessor.
 
 Install dependencies for the transformer inference:
@@ -32,6 +33,16 @@ cos, sin = self.rotary_emb(value_states, seq_len=kv_seq_len)
 # to this
 cos, sin = self.rotary_emb(value_states, seq_len=torch.max(position_ids) + 1)
 ```
+
+### Demo
+
+Simple demonstration code is located inside `main.py`. You can run it by
+
+```bash
+python main.py
+```
+
+Feel free to modify the code to test different prompts and schemas.
 
 ### Evaluation tasks
 
