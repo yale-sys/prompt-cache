@@ -129,12 +129,12 @@ class ModuleRef:
         self.modules = []
 
         # leading text
-        if root.text is not None:
+        if root.text is not None and len(root.text.strip()) > 0:
             raise ValueError("Module reference cannot have text")
 
         for e in root:
             self.modules.append(ModuleRef(e))
-            if e.tail is not None:
+            if e.tail is not None and len(e.tail.strip()) > 0:
                 raise ValueError("Module reference cannot have text")
 
     def __repr__(self) -> str:

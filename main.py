@@ -22,8 +22,8 @@ def main():
         FormatLlama2Conversation()
     ]
 
-    schema_text = read_file("./benchmark/schema_mbti.xml", preproc)
-    cache_engine.add_schema(schema_text)
+    cache_engine.add_schema(read_file("./benchmark/schema_mbti.xml", preproc))
+    cache_engine.add_schema(read_file("./benchmark/schema_persona.xml", preproc))
 
     parameter = GenerationParameters(
         temperature=0.1,
@@ -34,7 +34,28 @@ def main():
         stop_token_ids=[tokenizer.eos_token_id],
     )
 
-    prompt_text = "<prompt schema=\"mbti\"><E/><N/><T/><P/>"
+    prompt_text = "<prompt schema='mbti'> <E/><N/><T/><P/>"
+    prompt_text = """
+    <prompt schema='persona'>
+        <age>
+            <young-adult/>
+        </age>
+        <residence>
+            <seaside/>
+        </residence>
+        <education>
+            <doctorate/>
+        </education>
+        <occupation>
+            <technology/>
+        </occupation>
+        <martial-status>
+            <married/>
+        </martial-status>
+        <personality>
+            <introverted/>
+        </personality>
+    """
 
     # text chat interface
     while True:
@@ -52,6 +73,7 @@ def main():
         prompt = Prompt(prompt_text + "</prompt>", preproc)
 
         token_ids, position_ids, cache, orig_token_ids, orig_pos_ids = cache_engine.process(prompt)
+
         output_stream = gen_engine.generate(token_ids, position_ids, parameter, cache, stream_interval=2)
 
         print(f"Assistant: ", end="", flush=True)

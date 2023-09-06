@@ -17,6 +17,27 @@ from .schema import Parameter, Module, UnionModule, Schema, Tokenizer, TokenSequ
 KVCache = List[Tuple[torch.Tensor, torch.Tensor]]
 
 
+def pad_unk(position_ids: List[int], token_ids: List[int], unk_token_id: int):
+    print('before')
+    print(position_ids)
+    print(token_ids)
+
+    pos_min = min(position_ids)
+    pos_max = max(position_ids)
+
+    padded_position_ids = list(range(pos_min, pos_max + 1))
+    padded_token_ids = [unk_token_id] * len(padded_position_ids)
+
+    for i, token_id in zip(position_ids, token_ids):
+        padded_token_ids[padded_position_ids.index(i)] = token_id
+
+    print('after')
+    print(padded_position_ids)
+    print(padded_token_ids)
+
+    return padded_position_ids, padded_token_ids
+
+
 class CachedSchema:
     schema: Schema
     cache_l1: Dict[int, KVCache]
@@ -66,6 +87,11 @@ class CachedSchema:
 
             token_ids = scaffold.token_ids()
             position_ids = scaffold.position_ids()
+
+            # position_ids, token_ids = pad_unk(position_ids, token_ids, self.schema.tokenizer.hf_tokenizer.eos_token_id)
+
+            # print(token_ids)
+
             print(f"Caching module @{path} ({len(token_ids)} tokens)...")
 
             # replace modeling_llama.py line 334
@@ -197,11 +223,11 @@ class CacheEngine:
 
             # step 3. update stack
             for m in ref.modules:
-                module = schema.select(m.name)
-                if module is None:
-                    raise ValueError(f'There is no such module named {m.name} in the schema {schema.name}')
+                submodule = module.select(m.name)
+                if submodule is None:
+                    raise ValueError(f'There is no such module named @{m.name} in the module @{module.name}')
 
-                stack.append((m, module))
+                stack.append((m, submodule))
 
         # add trailing text
         text_token_ids = self.tokenizer.encode_maxx(prompt.text)
@@ -230,5 +256,7 @@ class CacheEngine:
 
         # Unpack the sorted pairs into two lists
         orig_position_ids, orig_input_ids = zip(*sorted_pairs)
+
+        # position_ids, token_ids = pad_unk(position_ids, input_ids, self.tokenizer.unk_token_id)
 
         return input_ids, position_ids, out_kv_cache, orig_input_ids, orig_position_ids
