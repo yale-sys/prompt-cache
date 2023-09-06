@@ -92,7 +92,7 @@ class CachedSchema:
 
             # print(token_ids)
 
-            print(f"Caching module @{path} ({len(token_ids)} tokens)...")
+            print(f"Caching module @{self.schema.name}/{path} ({len(token_ids)} tokens)...")
 
             # replace modeling_llama.py line 334
             #         cos, sin = self.rotary_emb(value_states, seq_len=torch.max(position_ids) + 1)

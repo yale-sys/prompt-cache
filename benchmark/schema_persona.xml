@@ -12,7 +12,7 @@
     <user>
         For the upcoming interaction, I would like you to create a hypothetical character based on seven
         combination of traits: age, residence, education, occupation, martial-status, and personality. This will shape
-        the character's responses, demeanor, and overall approach to  life.
+        the character's responses, demeanor, and overall approach to life.
 
         <module name="age">
             <union scaffold="default">
@@ -176,8 +176,8 @@
                     meeting new people.
                 </module>
                 <module name="introverted">
-                    This person is currently married, which may involve sharing responsibilities and making
-                    decisions together with a spouse. It may also involve raising children together.
+                    This person is currently married, which often involves preferring solitude or small group
+                    interactions. Introverts often feel drained by social interactions and need time alone to recharge.
                 </module>
                 <module name="sensing">
                     This person has a sensing personality, which often involves focusing on the present and relying
