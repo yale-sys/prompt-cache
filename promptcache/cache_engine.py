@@ -114,10 +114,10 @@ class CacheEngine:
     tokenizer: Tokenizer
     schemas: Dict[str, CachedSchema]
 
-    def __init__(self, model: LlamaForCausalLM, tokenizer: Tokenizer):
+    def __init__(self, model: LlamaForCausalLM, tokenizer: LlamaTokenizer):
 
         self.model = model
-        self.tokenizer = tokenizer
+        self.tokenizer = Tokenizer(tokenizer)
         self.schemas = dict()
 
     def add_schema(self, schema: Union[str, Schema]):
@@ -134,7 +134,7 @@ class CacheEngine:
             return None
         return self.schemas[name].schema
 
-    def process(self, prompt: Prompt) -> Tuple[List[int], List[int], KVCache]:
+    def process(self, prompt: Prompt) -> Tuple[List[int], List[int], KVCache, List[int], List[int]]:
 
         # assert that root tag matches engine signature
         if prompt.schema not in self.schemas:
@@ -143,6 +143,9 @@ class CacheEngine:
         cached = self.schemas[prompt.schema]
         schema = cached.schema
 
+        orig_ids_list = []
+        orig_pos_ids_list = []
+
         kv_cache_list = []
         argument_ids_list = []
         argument_pos_ids_list = []
@@ -150,13 +153,13 @@ class CacheEngine:
         # first add root level modules
         stack: List[(ModuleRef, Module)] = [(prompt, schema)]
 
-        for m in prompt.modules:
-
-            module = schema.select(m.name)
-            if module is None:
-                raise ValueError(f'There is no such module named {m.name} in the schema {schema.name}')
-
-            stack.append((m, module))
+        # for m in prompt.modules:
+        #
+        #     module = schema.select(m.name)
+        #     if module is None:
+        #         raise ValueError(f'There is no such module named {m.name} in the schema {schema.name}')
+        #
+        #     stack.append((m, module))
 
         while len(stack) > 0:
             ref, module = stack.pop()
@@ -164,6 +167,8 @@ class CacheEngine:
             # step 1. first add leaf nodes
             for m in module.token_sequences():
                 kv_cache_list.append(cached.get_cache_l1(m))
+                orig_ids_list.append(m.token_ids())
+                orig_pos_ids_list.append(m.position_ids())
 
             # step 2. process parameter-argument pairs
             parameters = module.parameters()
@@ -178,7 +183,7 @@ class CacheEngine:
                 if parameter is None:
                     raise ValueError(f'There is no such parameter named {arg.name} in the module {module.name}')
 
-                argument_ids = self.tokenizer.encode(arg.value)
+                argument_ids = self.tokenizer.encode_maxx(arg.value)
 
                 if len(argument_ids) > parameter.length:
                     raise ValueError(
@@ -198,7 +203,7 @@ class CacheEngine:
                 stack.append((m, module))
 
         # add trailing text
-        text_token_ids = self.tokenizer.encode(prompt.text)
+        text_token_ids = self.tokenizer.encode_maxx(prompt.text)
         text_position_ids = list(range(len(schema), len(schema) + len(text_token_ids)))
 
         argument_ids_list.append(text_token_ids)
@@ -206,6 +211,9 @@ class CacheEngine:
 
         input_ids = list(itertools.chain(*argument_ids_list))
         position_ids = list(itertools.chain(*argument_pos_ids_list))
+
+        orig_input_ids = list(itertools.chain(*orig_ids_list))
+        orig_position_ids = list(itertools.chain(*orig_pos_ids_list))
 
         # print([kv_cache[0].shape for kv_cache in kv_cache_list])
         num_layers = len(kv_cache_list[0])
@@ -217,4 +225,9 @@ class CacheEngine:
             v_cache_i = torch.cat([kv_cache[i][1] for kv_cache in kv_cache_list], dim=2)
             out_kv_cache.append((k_cache_i, v_cache_i))
 
-        return input_ids, position_ids, out_kv_cache
+        sorted_pairs = sorted(zip(orig_position_ids + position_ids, orig_input_ids + input_ids))
+
+        # Unpack the sorted pairs into two lists
+        orig_position_ids, orig_input_ids = zip(*sorted_pairs)
+
+        return input_ids, position_ids, out_kv_cache, orig_input_ids, orig_position_ids

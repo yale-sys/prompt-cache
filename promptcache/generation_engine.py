@@ -53,6 +53,7 @@ class GenerationEngine:
         self.model = model
         self.tokenizer = tokenizer
 
+    @torch.inference_mode()
     def generate(self,
                  token_ids: List[int],
                  position_ids: List[int],
@@ -69,22 +70,32 @@ class GenerationEngine:
         position_ids = torch.tensor([position_ids], device=self.model.device, dtype=torch.long)
 
         if cache is not None:
-            cache = [(cache[i][0].to(self.model.device), cache[i][1].to(self.model.device)) for i in range(len(cache))]
+            cache = [(cache[i][0].to(self.model.device), cache[i][1].to(self.model.device)) for i in
+                     range(len(cache))]
 
+        past_key_values = None
         for i in range(params.max_new_tokens):
 
-            if cache is None:
-                out = self.model(input_ids=token_ids,
-                                 position_ids=position_ids,
-                                 use_cache=False)
-            else:
+            if past_key_values is None:
 
                 out = self.model(input_ids=token_ids,
                                  position_ids=position_ids,
                                  past_key_values=cache,
                                  use_cache=True)
-            logits = out.logits
-            cache = out.past_key_values
+
+                logits = out.logits
+                past_key_values = out.past_key_values
+            else:
+
+                new_token_ids = torch.tensor([[token]], device=self.model.device, dtype=torch.long)
+
+                out = self.model(input_ids=new_token_ids,
+                                 # position_ids=position_ids,
+                                 past_key_values=past_key_values,
+                                 use_cache=True)
+
+                logits = out.logits
+                past_key_values = out.past_key_values
 
             if params.repetition_penalty > 1.0:
                 tmp_output_ids = torch.as_tensor(
@@ -125,6 +136,6 @@ class GenerationEngine:
                 break
 
         # clean
-        del past_key_values, out
+        # del past_key_values, out
         gc.collect()
         torch.cuda.empty_cache()

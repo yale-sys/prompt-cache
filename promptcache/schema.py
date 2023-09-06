@@ -37,8 +37,10 @@ class Tokenizer:
     def __init__(self, hf_tokenizer: LlamaTokenizer):
         self.hf_tokenizer = hf_tokenizer
 
-    def encode(self, text: str) -> List[int]:
-        return self.hf_tokenizer.encode(text, add_special_tokens=False)[0]
+    def encode_maxx(self, text: str) -> List[int]:
+        # Warning: this is a hack to remove bos_token
+        token_ids = self.hf_tokenizer.encode(text, add_special_tokens=False)
+        return token_ids
 
     def decode(self, token_ids: List[int]) -> str:
         return self.hf_tokenizer.decode(token_ids, skip_special_tokens=False)
@@ -156,7 +158,7 @@ class Parameter(Element):
 
         if "scaffold" in root.attrib:
 
-            self._token_ids = tokenizer.encode(root.attrib["scaffold"])
+            self._token_ids = tokenizer.encode_maxx(root.attrib["scaffold"])
 
             if len(self._token_ids) > self.length:
                 raise ValueError(f'Scaffold for parameter {self.name} is too long')
@@ -185,7 +187,7 @@ class TokenSequence(Element):
         super().__init__(offset)
 
         self.text = text
-        self._token_ids = tokenizer.encode(text)[1:]  # Warning: this is a hack to remove bos_token
+        self._token_ids = tokenizer.encode_maxx(text)
         self._position_ids = list(range(self.offset, self.offset + len(self._token_ids)))
 
     def __len__(self) -> int:

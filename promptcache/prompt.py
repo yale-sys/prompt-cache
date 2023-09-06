@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from abc import ABC, abstractmethod
-from typing import Union, List, Any
+from typing import Union, List, Any, Optional
 from dataclasses import dataclass
 
 import lxml
@@ -161,12 +161,19 @@ class Prompt(ModuleRef):
     schema: str
     text: str
 
-    def __init__(self, spec: Union[str, lxml.etree.Element]):
+    preproc: List[Preprocessor]
+
+    def __init__(self, spec: Union[str, lxml.etree.Element], preproc: Optional[List[Preprocessor]] = None):
 
         super().__init__()
         self.args = []
+        self.preproc = preproc if preproc is not None else []
 
         if type(spec) == str:
+
+            for p in self.preproc:
+                spec = p(spec)
+
             parser = lxml.etree.XMLParser(recover=True)
             spec = lxml.etree.fromstring(spec, parser=parser)
 
@@ -206,10 +213,15 @@ class Prompt(ModuleRef):
                 if e.tail is not None:
                     self.text = compact_surrounding_spaces(e.tail)
 
+    def add_text(self, text: str):
+        for p in self.preproc:
+            text = p(text)
+
+        self.text += text
+
     def __repr__(self) -> str:
         r = f"Schema: @{self.name}"
         for m in self.modules:
             r += '\n' + repr_indent(m)
         r += '\nText: ' + repr(self.text)
         return r
-

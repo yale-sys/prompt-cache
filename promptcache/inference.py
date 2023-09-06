@@ -6,7 +6,7 @@ import sys
 import time
 import warnings
 
-from conversation import Conversation, SeparatorStyle
+from conversation import Conversation, SeparatorStyle, llama2_template
 
 import psutil
 import torch
@@ -267,17 +267,7 @@ def chat_loop(
 
     device = 'cuda'
 
-    conv = Conversation(
-        name="vicuna_v1.1",
-        system="A chat between a curious user and an artificial intelligence assistant. "
-               "The assistant gives helpful, detailed, and polite answers to the user's questions.",
-        roles=("USER", "ASSISTANT"),
-        messages=(),
-        offset=0,
-        sep_style=SeparatorStyle.ADD_COLON_TWO,
-        sep=" ",
-        sep2="</s>",
-    ).copy()
+    conv = llama2_template()
 
     while True:
         try:
@@ -313,7 +303,7 @@ def chat_loop(
         conv.update_last_message(outputs.strip())
 
         if debug:
-            num_tokens = len(tokenizer.encode(outputs))
+            num_tokens = len(tokenizer.encode_maxx(outputs))
             msg = {
                 "conv_template": conv.name,
                 "prompt": prompt,
@@ -325,7 +315,7 @@ def chat_loop(
 
 if __name__ == "__main__":
     chat_loop(
-        model_path="lmsys/vicuna-7b-v1.3",
+        model_path="meta-llama/Llama-2-7b-chat-hf",
         temperature=0.7,
         repetition_penalty=1.0,
         max_new_tokens=512,

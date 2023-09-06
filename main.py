@@ -4,7 +4,7 @@ from transformers import (
 )
 
 from promptcache import Schema, Prompt, CompactSpaces, FormatLlama2Conversation, read_file, CacheEngine, \
-    GenerationEngine, GenerationParameters
+    GenerationEngine, GenerationParameters, llama2_template
 
 model_path = "meta-llama/Llama-2-7b-chat-hf"
 
@@ -23,19 +23,16 @@ def main():
     ]
 
     schema_text = read_file("./benchmark/schema_mbti_short.xml", preproc)
-    prompt_text = read_file("./benchmark/prompt_mbti.xml", preproc)
+    # prompt_text = read_file("./benchmark/prompt_mbti.xml")
 
-    schema = Schema(schema_text, tokenizer)
-    prompt = Prompt(prompt_text)
+    # schema = Schema(schema_text, tokenizer)
+    prompt_text = "<prompt schema=\"mbti\"><E/><N/><T/><P/>"
 
-    print(schema)
-    print(prompt)
-
-    cache_engine.add_schema(schema)
+    cache_engine.add_schema(schema_text)
 
     parameter = GenerationParameters(
-        temperature=1.0,
-        repetition_penalty=1.17,
+        temperature=0.7,
+        repetition_penalty=1.0,
         top_p=0.95,
         top_k=50,
         max_new_tokens=256,
@@ -55,9 +52,9 @@ def main():
 
         prompt_text += f"<user>{inp}</user>"
 
-        prompt = Prompt(prompt_text)
-        token_ids, position_ids, cache = cache_engine.process(prompt)
-        cache = None
+        prompt = Prompt(prompt_text + "</prompt>", preproc)
+
+        token_ids, position_ids, cache, orig_token_ids, orig_pos_ids = cache_engine.process(prompt)
         output_stream = gen_engine.generate(token_ids, position_ids, parameter, cache, stream_interval=2)
 
         print(f"Assistant: ", end="", flush=True)
@@ -69,6 +66,7 @@ def main():
             resp += outputs.new_text
             print(" ".join(output_text), end=" ", flush=True)
 
+        print("\n")
         prompt_text += f"<assistant>{resp}</assistant>"
 
 
