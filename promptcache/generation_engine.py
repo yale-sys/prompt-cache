@@ -1,4 +1,5 @@
 import gc
+import time
 from dataclasses import dataclass
 from typing import Optional, Generator, List
 
@@ -43,6 +44,7 @@ class GenerationParameters:
 class Output:
     text: str
     new_text: str
+    elapsed_time: float = 0.0
 
 
 class GenerationEngine:
@@ -65,55 +67,75 @@ class GenerationEngine:
         output_ids = list(token_ids)
         new_output_ids = list()
 
-        # create tensors
-        token_ids = torch.tensor([token_ids], device=self.model.device, dtype=torch.long)
-        position_ids = torch.tensor([position_ids], device=self.model.device, dtype=torch.long)
+        device = self.model.device
 
+        position_offset = max(position_ids) + 1
+
+        # upload cache to GPU
         if cache is not None:
-            cache = [(cache[i][0].to(self.model.device), cache[i][1].to(self.model.device)) for i in
-                     range(len(cache))]
+            cache = [(cache[i][0].to(device), cache[i][1].to(device)) for i in range(len(cache))]
 
         past_key_values = None
+        new_token_id = 0
+
+        inference_time = 0.0
+
         for i in range(params.max_new_tokens):
 
+            # initial phase
             if past_key_values is None:
 
-                out = self.model(input_ids=token_ids,
+                # upload to the GPU
+                input_ids = torch.tensor([token_ids], device=device, dtype=torch.long)
+                position_ids = torch.tensor([position_ids], device=device, dtype=torch.long)
+                use_cache = False
+
+                if cache is not None:
+                    past_key_values = [(cache[i][0].to(device), cache[i][1].to(device)) for i in range(len(cache))]
+                    use_cache = True
+
+                t1 = time.time()
+                out = self.model(input_ids=input_ids,
                                  position_ids=position_ids,
-                                 past_key_values=cache,
-                                 use_cache=True)
+                                 past_key_values=past_key_values,
+                                 use_cache=use_cache)
+
+                inference_time += time.time() - t1
 
                 logits = out.logits
                 past_key_values = out.past_key_values
             else:
 
-                new_token_ids = torch.tensor([[token]], device=self.model.device, dtype=torch.long)
-
-                out = self.model(input_ids=new_token_ids,
-                                 # position_ids=position_ids,
+                # upload to the GPU
+                input_ids = torch.tensor([[new_token_id]], device=device, dtype=torch.long)
+                position_ids = torch.tensor([[position_offset + i]], device=device, dtype=torch.long)
+                t1 = time.time()
+                out = self.model(input_ids=input_ids,
+                                 position_ids=position_ids,
                                  past_key_values=past_key_values,
                                  use_cache=True)
+                inference_time += time.time() - t1
 
                 logits = out.logits
                 past_key_values = out.past_key_values
 
             if params.repetition_penalty > 1.0:
-                tmp_output_ids = torch.as_tensor(
-                    [output_ids], device=logits.device)
+                tmp_output_ids = torch.as_tensor([output_ids], device=device)
             else:
                 tmp_output_ids = None
+
             last_token_logits = logits_processor(tmp_output_ids, logits[:, -1, :])[0]
 
             if params.temperature < 1e-5 or params.top_p < 1e-8:  # greedy
-                token = int(torch.argmax(last_token_logits))
+                new_token_id = int(torch.argmax(last_token_logits))
             else:
                 probs = torch.softmax(last_token_logits, dim=-1)
-                token = int(torch.multinomial(probs, num_samples=1))
+                new_token_id = int(torch.multinomial(probs, num_samples=1))
 
-            output_ids.append(token)
-            new_output_ids.append(token)
+            output_ids.append(new_token_id)
+            new_output_ids.append(new_token_id)
 
-            if token in params.stop_token_ids:
+            if new_token_id in params.stop_token_ids:
                 stopped = True
             else:
                 stopped = False
@@ -129,13 +151,12 @@ class GenerationEngine:
                     skip_special_tokens=True,
                     spaces_between_special_tokens=False,
                 )
-                new_output_ids = []
-                yield Output(output, new_output)
+                yield Output(output, new_output, inference_time)
 
             if stopped:
                 break
 
         # clean
-        # del past_key_values, out
+        del past_key_values, out
         gc.collect()
         torch.cuda.empty_cache()

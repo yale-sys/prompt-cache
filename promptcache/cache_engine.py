@@ -32,6 +32,7 @@ class CachedSchema:
 
         self._process()
 
+    @torch.inference_mode()
     def _process(self):
 
         # Get all possible L1 scaffolds
@@ -61,11 +62,11 @@ class CachedSchema:
         # For each path, update every leaf nodes (token sequence) under that path
         for path in paths_l1:
 
-            print(f"Caching module @{path}...")
             scaffold = self.schema.get_scaffold(path)
 
             token_ids = scaffold.token_ids()
             position_ids = scaffold.position_ids()
+            print(f"Caching module @{path} ({len(token_ids)} tokens)...")
 
             # replace modeling_llama.py line 334
             #         cos, sin = self.rotary_emb(value_states, seq_len=torch.max(position_ids) + 1)

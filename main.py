@@ -6,7 +6,7 @@ from transformers import (
 from promptcache import Schema, Prompt, CompactSpaces, FormatLlama2Conversation, read_file, CacheEngine, \
     GenerationEngine, GenerationParameters, llama2_template
 
-model_path = "meta-llama/Llama-2-7b-chat-hf"
+model_path = "meta-llama/Llama-2-13b-chat-hf"
 
 
 def main():
@@ -22,22 +22,19 @@ def main():
         FormatLlama2Conversation()
     ]
 
-    schema_text = read_file("./benchmark/schema_mbti_short.xml", preproc)
-    # prompt_text = read_file("./benchmark/prompt_mbti.xml")
-
-    # schema = Schema(schema_text, tokenizer)
-    prompt_text = "<prompt schema=\"mbti\"><E/><N/><T/><P/>"
-
+    schema_text = read_file("./benchmark/schema_mbti.xml", preproc)
     cache_engine.add_schema(schema_text)
 
     parameter = GenerationParameters(
-        temperature=0.7,
-        repetition_penalty=1.0,
+        temperature=0.1,
+        repetition_penalty=1.17,
         top_p=0.95,
-        top_k=50,
-        max_new_tokens=256,
+        top_k=-1,
+        max_new_tokens=512,
         stop_token_ids=[tokenizer.eos_token_id],
     )
+
+    prompt_text = "<prompt schema=\"mbti\"><E/><N/><T/><P/>"
 
     # text chat interface
     while True:
@@ -60,11 +57,15 @@ def main():
         print(f"Assistant: ", end="", flush=True)
 
         resp = ""
-
+        pre = 0
         for outputs in output_stream:
             output_text = outputs.new_text.strip().split(" ")
-            resp += outputs.new_text
-            print(" ".join(output_text), end=" ", flush=True)
+            now = len(output_text) - 1
+            if now > pre:
+                tt = " ".join(output_text[pre:now])
+                resp += tt + " "
+                print(tt, end=" ", flush=True)
+                pre = now
 
         print("\n")
         prompt_text += f"<assistant>{resp}</assistant>"

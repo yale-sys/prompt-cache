@@ -4,16 +4,27 @@ Modular and structured prompt caching for low-latency LLM inference
 
 ### Setup
 
+Current inference engine is based on [llama2](https://huggingface.co/meta-llama/Llama-2-7b-chat-hf) model hosted on HF. Make sure that you
+have access to it. You may use other LLMs, but you need to modify the chat preprocessor.
 
-Install editable `transformers` by
+Install dependencies for the transformer inference:
+
+```bash
+pip install deepspeed bitsandbytes peft protobuf lxml
+```
+
+Install editable up-to-date `transformers` by
+
 ```bash
 git clone https://github.com/huggingface/transformers
 cd transformers
 pip install -e .
 ```
 
-Then, modify `transformers/models/llama/modeling_llama.py` [L332](https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/modeling_llama.py#L332)
-To support sparse position ids
+Then,
+modify `transformers/models/llama/modeling_llama.py` [L332](https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/modeling_llama.py#L332)
+To support positional embedding on sparse position ids. This hack will be later replaced by a PR to the upstream.
+
 ```python
 # from this
 cos, sin = self.rotary_emb(value_states, seq_len=kv_seq_len)
@@ -21,8 +32,6 @@ cos, sin = self.rotary_emb(value_states, seq_len=kv_seq_len)
 # to this
 cos, sin = self.rotary_emb(value_states, seq_len=torch.max(position_ids) + 1)
 ```
-
-
 
 ### Evaluation tasks
 
@@ -46,13 +55,9 @@ Since the code itself is a structured data, `PromptCache` can be used to cache t
 
 Long task prompts typically involves a parameterizable template.
 
-
-
 #### 4. Long contexts
 
 Long contexts about documents, videos, or images are often used in LLM.
-
-
 
 ### Prompt schema
 
