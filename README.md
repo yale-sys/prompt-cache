@@ -75,11 +75,23 @@ Example: [/benchmark/schema_persona.xml](./benchmark/schema_persona.xml):
 
 The result:
 
+- **No cache** (response time:  286.9ms)
+
+```
+User: Introduce about yourself.
+Assistant: Hello! My name is Alex, and I am a 25-year-old woman who lives in a beautiful coastal town. I have recently completed my
+ Ph.D. in computer science and am now working as a software engineer at a leading tech company. When I'm not working, I 
+ enjoy spending time outdoors, reading books, and trying out new recipes in the kitchen. I am also very passionate about 
+ my work and am constantly looking for opportunities to learn and grow in my
+```
+
+- **With cache** (response time: 78.2ms)
+
 ```
 User: Introduce about yourself.
 Assistant: Hello! My name is Alex, and I'm a 28-year-old software developer who recently moved to the coastal town of Oceanview. I have a doctorate degree in computer science and specialize in artificial intelligence and machine learning. I work as a lead engineer at a tech startup that focuses on developing innovative AI solutions for various industries.
-In my free time, I enjoy exploring the beautiful beaches and hiking trails around Oceanview with my wife, Sarah. We met while we were both pursuing our graduate degrees at Stanford University, and we've been inseparable ever since. We have two adorable kids, Emily and Jack, who keep us busy and bring us endless joy.
-As an introverted person, I often prefer spending time alone or with my close family members, but I also make an effort to connect with others through social events and community activities. I believe in being honest, kind, and respectful towards everyone, regardless of their background or beliefs.
+ In my free time, I enjoy exploring the beautiful beaches and hiking trails around Oceanview with my wife, Sarah. We met while we were both pursuing our graduate degrees at Stanford University, and we've been inseparable ever since. We have two adorable kids, Emily and Jack, who keep us busy and bring us endless joy.
+ As an introverted person, I often prefer spending time alone or with my close family members, but I also make an effort to connect with others through social events and community activities. I believe in being honest, kind, and respectful towards everyone, regardless of their background or beliefs.
 ```
 
 ### Evaluation tasks
