@@ -76,7 +76,7 @@ Example: [/benchmark/schema_persona.xml](./benchmark/schema_persona.xml):
 
 The result:
 
-- **No cache** (response time:  286.9ms)
+- **Regular KV cache** (response time:  286.9ms)
 
 ```
 User: Introduce about yourself.
@@ -86,7 +86,7 @@ Assistant: Hello! My name is Alex, and I am a 25-year-old woman who lives in a b
  my work and am constantly looking for opportunities to learn and grow in my
 ```
 
-- **With cache** (response time: 78.2ms)
+- **With PromptCache** (response time: 78.2ms)
 
 ```
 User: Introduce about yourself.
