@@ -23,7 +23,7 @@ pip install -e .
 ```
 
 Then,
-modify `transformers/models/llama/modeling_llama.py` [L332](https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/modeling_llama.py#L332)
+modify `src/transformers/models/llama/modeling_llama.py` [L332](https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/modeling_llama.py#L332)
 To support positional embedding on sparse position ids. This hack will be later replaced by a PR to the upstream.
 
 ```python
