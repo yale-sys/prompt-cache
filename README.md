@@ -46,7 +46,7 @@ python main.py
 You can turn on and off the `PromptCache` by setting `use_cache` flag in `main.py`.
 Feel free to modify the code to test different prompts and schemas.
 
-Example: [/benchmark/schema_persona.xml](./benchmark/schema_persona.xml):
+Example: [/benchmark/schema_persona_long.xml](./benchmark/schema_persona_long.xml):
 
 ```xml
 
