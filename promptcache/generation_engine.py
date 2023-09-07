@@ -86,24 +86,34 @@ class GenerationEngine:
             if past_key_values is None:
 
                 # upload to the GPU
+
                 input_ids = torch.tensor([token_ids], device=device, dtype=torch.long)
                 position_ids = torch.tensor([position_ids], device=device, dtype=torch.long)
-                use_cache = False
+                use_cache = True
 
+                ffff = None
                 if cache is not None:
-                    past_key_values = [(cache[i][0].to(device), cache[i][1].to(device)) for i in range(len(cache))]
-                    use_cache = True
+                    ffff = [(cache[i][0].to(device), cache[i][1].to(device)) for i in range(len(cache))]
 
-                t1 = time.time()
+                start = torch.cuda.Event(enable_timing=True)
+                end = torch.cuda.Event(enable_timing=True)
+                torch.cuda.synchronize()
+
+                start.record()
                 out = self.model(input_ids=input_ids,
                                  position_ids=position_ids,
-                                 past_key_values=past_key_values,
+                                 past_key_values=ffff,
                                  use_cache=use_cache)
+                end.record()
+                torch.cuda.synchronize()
+                inference_time += start.elapsed_time(end)
 
-                inference_time += time.time() - t1
+                print('Initial response time: ', inference_time)
 
                 logits = out.logits
                 past_key_values = out.past_key_values
+
+                del ffff
             else:
 
                 # upload to the GPU
