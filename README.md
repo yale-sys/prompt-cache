@@ -17,7 +17,8 @@ pip install deepspeed bitsandbytes peft protobuf lxml
 Install editable up-to-date `transformers` by
 
 ```bash
-git clone https://github.com/huggingface/transformers
+git submodule init
+git submodule update
 cd transformers
 pip install -e .
 ```
