@@ -22,17 +22,18 @@ cd transformers
 pip install -e .
 ```
 
-Then,
-modify `src/transformers/models/llama/modeling_llama.py` [L332](https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/modeling_llama.py#L332)
-To support positional embedding on sparse position ids. This hack will be later replaced by a PR to the upstream.
-
-```python
-# from this
-cos, sin = self.rotary_emb(value_states, seq_len=kv_seq_len)
-
-# to this
-cos, sin = self.rotary_emb(value_states, seq_len=torch.max(position_ids) + 1)
+Then, run the following command (inside cloned `transformers` repo)
+```bash
+sed -i 's/cos, sin = self.rotary_emb(value_states, seq_len=kv_seq_len)/cos, sin = self.rotary_emb(value_states, seq_len=torch.max(position_ids) + 1)/' src/transformers/models/llama/modeling_llama.py
 ```
+to modify `src/transformers/models/llama/modeling_llama.py` [L332](https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/modeling_llama.py#L332) as follows
+> ```python
+> # from this
+> cos, sin = self.rotary_emb(value_states, seq_len=kv_seq_len)
+> # to this
+> cos, sin = self.rotary_emb(value_states, seq_len=torch.max(position_ids) + 1)
+> ```
+This is to support positional embedding on sparse position ids. This hack will be later replaced by a PR to the upstream.
 
 ### Demo
 
