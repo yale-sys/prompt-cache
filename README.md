@@ -17,6 +17,7 @@ pip install deepspeed bitsandbytes peft protobuf lxml
 Install editable up-to-date `transformers` by
 
 ```bash
+(assume that you are inside this repository)
 git submodule init
 git submodule update
 cd transformers
