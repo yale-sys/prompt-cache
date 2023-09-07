@@ -75,7 +75,7 @@ Example: [/benchmark/schema_persona_long.xml](./benchmark/schema_persona_long.xm
 </prompt>
 ```
 
-The result:
+The result (on a NVIDIA RTX 4090):
 
 - **Regular KV cache** (response time:  286.9ms)
 
