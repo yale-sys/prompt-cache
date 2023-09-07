@@ -23,7 +23,7 @@ def main():
     ]
 
     cache_engine.add_schema(read_file("./benchmark/schema_mbti.xml", preproc))
-    cache_engine.add_schema(read_file("./benchmark/schema_persona.xml", preproc))
+    cache_engine.add_schema(read_file("./benchmark/schema_persona_long.xml", preproc))
 
     parameter = GenerationParameters(
         temperature=0.1,
@@ -57,6 +57,8 @@ def main():
         </personality>
     """
 
+    use_cache = True
+
     # text chat interface
     while True:
         try:
@@ -74,7 +76,11 @@ def main():
 
         token_ids, position_ids, cache, orig_token_ids, orig_pos_ids = cache_engine.process(prompt)
 
-        output_stream = gen_engine.generate(token_ids, position_ids, parameter, cache, stream_interval=2)
+        if use_cache:
+            output_stream = gen_engine.generate(token_ids, position_ids, parameter, cache, stream_interval=2)
+
+        else:
+            output_stream = gen_engine.generate(orig_token_ids, orig_pos_ids, parameter, cache=None, stream_interval=2)
 
         print(f"Assistant: ", end="", flush=True)
 
