@@ -380,7 +380,11 @@
             </union>
         </module>
 
-
     </user>
+    <assistant>
+        Great, thank you for providing the information about the character. Based on the provided traits, I have
+        created a hypothetical character named Alex. Now feel free to ask any questions about him, and I will respond
+        based on his persona.
+    </assistant>
 
 </schema>
