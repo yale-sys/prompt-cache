@@ -22,11 +22,10 @@ def main():
         FormatLlama2Conversation()
     ]
 
-    cache_engine.add_schema(read_file("./benchmark/schema_mbti.xml", preproc))
-    cache_engine.add_schema(read_file("./benchmark/schema_persona_long.xml", preproc))
+    cache_engine.add_schema(read_file("./benchmark/schema_qanda.xml", preproc))
 
     parameter = GenerationParameters(
-        temperature=0.1,
+        temperature=0.0,
         repetition_penalty=1.17,
         top_p=0.95,
         top_k=-1,
@@ -34,30 +33,19 @@ def main():
         stop_token_ids=[tokenizer.eos_token_id],
     )
 
-    prompt_text = "<prompt schema='mbti'> <E/><N/><T/><P/>"
     prompt_text = """
-    <prompt schema='persona'>
-        <age>
-            <young-adult/>
-        </age>
-        <residence>
-            <seaside/>
-        </residence>
-        <education>
-            <doctorate/>
-        </education>
-        <occupation>
-            <technology/>
-        </occupation>
-        <martial-status>
-            <married/>
-        </martial-status>
-        <personality>
-            <introverted/>
-        </personality>
+    <prompt schema='qanda'>
+        <beyonce>
+            <chunk1/>
+            <chunk2/>
+            <chunk3/>
+            <chunk4/>
+            <chunk5/>
+    <chunk6/>
+        </beyonce>
     """
 
-    use_cache = True
+    use_cache = False
 
     # text chat interface
     while True:
@@ -82,7 +70,7 @@ def main():
         else:
             output_stream = gen_engine.generate(orig_token_ids, orig_pos_ids, parameter, cache=None, stream_interval=2)
 
-        print(f"Assistant: ", end="", flush=True)
+        print(f"Assistant: ")
 
         resp = ""
         pre = 0
