@@ -22,7 +22,7 @@ def main():
         FormatLlama2Conversation()
     ]
 
-    cache_engine.add_schema(read_file("./benchmark/schema_qanda.xml", preproc))
+    cache_engine.add_schema(read_file("./benchmark/schema_marco.xml", preproc))
 
     parameter = GenerationParameters(
         temperature=0.0,
@@ -34,18 +34,16 @@ def main():
     )
 
     prompt_text = """
-    <prompt schema='qanda'>
-        <beyonce>
+    <prompt schema='marco'>
+        <walmart>
             <chunk1/>
             <chunk2/>
             <chunk3/>
             <chunk4/>
-            <chunk5/>
-    <chunk6/>
-        </beyonce>
+        </walmart>
     """
 
-    use_cache = False
+    use_cache = True
 
     # text chat interface
     while True:
@@ -73,16 +71,19 @@ def main():
         print(f"Assistant: ")
 
         resp = ""
-        pre = 0
+        final_output = None
         for outputs in output_stream:
-            output_text = outputs.new_text.strip().split(" ")
-            now = len(output_text) - 1
-            if now > pre:
-                tt = " ".join(output_text[pre:now])
-                resp += tt + " "
-                print(tt, end=" ", flush=True)
-                pre = now
-
+            final_output = outputs
+        #     print("Output: ", outputs)
+        #     output_text = outputs.new_text.strip().split(" ")
+        #     now = len(output_text) - 1
+        #     if now > pre:
+        #         tt = " ".join(output_text[pre:now])
+        #         resp += tt + " "
+        #         #print(tt, end=" ", flush=True)
+        #         pre = now
+        print(final_output.text)
+        
         print("\n")
         prompt_text += f"<assistant>{resp}</assistant>"
 
