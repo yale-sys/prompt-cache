@@ -1,3 +1,5 @@
+import gc
+
 import lxml
 import lxml.etree
 from typing import List, Tuple, Union, Dict, cast, Optional
@@ -38,7 +40,81 @@ def pad_unk(position_ids: List[int], token_ids: List[int], unk_token_id: int):
     return padded_position_ids, padded_token_ids
 
 
-class CachedSchema:
+class ModuleCache:
+    module: Module
+    host_cache: KVCache
+    device_cache: Optional[KVCache] = None
+
+    def __init__(self, module: Module, cache: KVCache):
+        self.module = module
+        self.host_cache = cache
+
+    def upload(self, device: str):
+        if self.device_cache is None:
+            self.device_cache = [(kv[0].to(device, non_blocking=True),
+                                  kv[1].to(device, non_blocking=True)) for kv in self.host_cache]
+
+    def free(self):
+        # need to invoke gc.collect() manually later
+        if self.device_cache is not None:
+            self.device_cache = None
+
+    @property
+    def cache(self) -> KVCache:
+        # prioritize device cache
+        if self.device_cache is None:
+            return self.host_cache
+        return self.device_cache
+
+
+# this persists in the device memory
+class PromptCache:
+    staged: List[ModuleCache]
+
+    # only device cache
+    cache: KVCache
+
+    def __init__(self, device: str):
+
+        # stores staged modules
+        self.staged = []
+
+    def update(self, modules: List[ModuleCache]):
+
+        updates = []
+
+        for m in modules:
+            for s in self.staged:
+                # we should not compare s.module != m.module because they can be from different level of caches.
+                if s.module.offset == m.module.offset and s != m:
+                    updates.append(m)
+                    break
+
+        # update the cache
+        for m in updates:
+            st = m.module.offset
+            ed = st + len(m.module)
+
+            for i in range(len(self.cache)):
+                self.cache[i][0][:, :, st:ed, :].copy_(m.cache[i][0], non_blocking=True)
+                self.cache[i][1][:, :, st:ed, :].copy_(m.cache[i][1], non_blocking=True)
+
+        self.staged = modules
+
+        # compare current setup with new setup
+        # rewrite
+        #    - from host
+        #    - from device
+        # use Tensor.copy_ to do this. (set non_blocking=True)
+
+        # new cache blocks will be stored in the gpu.
+        # then if the space runs out,
+        #    - evict most unpopular ones.
+
+        # we don't have to worry about the surplus tokens because it will be masked.
+
+
+class SchemaCache:
     schema: Schema
     cache_l1: Dict[int, KVCache]
     cache_l2: Dict[Tuple[int, int], Tuple[KVCache, KVCache]]
@@ -123,6 +199,8 @@ class CachedSchema:
                                           kv_cache[i][1][:, :, st:ed, :].detach().cpu())
                                          for i in range(len(kv_cache))]
 
+        # upload to gpu.
+
     def get_cache_l1(self, seq: TokenSequence) -> Optional[KVCache]:
         seq_id = id(seq)
         if seq_id not in self.cache_l1:
@@ -136,10 +214,16 @@ class CachedSchema:
         return self.cache_l2[(seq1_id, seq2_id)]
 
 
+# each cache block is either allocated in the host or device memory.
+# only upload to GPU when needed..
+
+# first all
+
+
 class CacheEngine:
     model: LlamaForCausalLM
     tokenizer: Tokenizer
-    schemas: Dict[str, CachedSchema]
+    schemas: Dict[str, SchemaCache]
 
     def __init__(self, model: LlamaForCausalLM, tokenizer: LlamaTokenizer):
 
@@ -154,7 +238,7 @@ class CacheEngine:
         if schema.name in self.schemas:
             raise ValueError(f'There is already a schema named {schema.name} in the cache')
 
-        self.schemas[schema.name] = CachedSchema(schema, self.model)
+        self.schemas[schema.name] = SchemaCache(schema, self.model)
 
     def get_schema(self, name: str) -> Optional[Schema]:
         if name not in self.schemas:

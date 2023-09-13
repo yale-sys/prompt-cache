@@ -72,8 +72,19 @@ class GenerationEngine:
         position_offset = max(position_ids) + 1
 
         # upload cache to GPU
+        start = torch.cuda.Event(enable_timing=True)
+        end = torch.cuda.Event(enable_timing=True)
+        torch.cuda.synchronize()
+
+        start.record()
         if cache is not None:
-            cache = [(cache[i][0].to(device), cache[i][1].to(device)) for i in range(len(cache))]
+            cache = [(cache[i][0].cuda(non_blocking=True),
+                      cache[i][1].cuda(non_blocking=True)) for i in range(len(cache))]
+
+        end.record()
+        torch.cuda.synchronize()
+
+        memory_upload_time = start.elapsed_time(end)
 
         past_key_values = None
         new_token_id = 0
@@ -108,7 +119,7 @@ class GenerationEngine:
                 torch.cuda.synchronize()
                 inference_time += start.elapsed_time(end)
 
-                print('Initial response time: ', inference_time)
+                print('Initial response time: ', inference_time, memory_upload_time)
 
                 logits = out.logits
                 past_key_values = out.past_key_values

@@ -57,7 +57,7 @@ def main():
         </personality>
     """
 
-    use_cache = True
+    use_cache = False
 
     # text chat interface
     while True:
