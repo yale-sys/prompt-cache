@@ -303,7 +303,7 @@ def chat_loop(
         conv.update_last_message(outputs.strip())
 
         if debug:
-            num_tokens = len(tokenizer.encode_maxx(outputs))
+            num_tokens = len(tokenizer.encode(outputs))
             msg = {
                 "conv_template": conv.name,
                 "prompt": prompt,

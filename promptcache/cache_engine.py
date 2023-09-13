@@ -13,7 +13,7 @@ from transformers import (
 )
 
 from .prompt import Preprocessor, Prompt, ModuleRef
-from .schema import Parameter, TokenSequence, UnionModule, Schema, Tokenizer, Path
+from .schema import Parameter, TokenSequence, UnionModule, Schema, Tokenizer, Path, Module
 
 # list - each decoding layer in transformer
 KVCache = List[Tuple[torch.Tensor, torch.Tensor]]
@@ -93,17 +93,19 @@ class PromptCache:
         self.max_ctx_length = max_ctx_length
         self.num_head = num_head
         self.head_dim = head_dim
-        self.device_cache = [(torch.empty(num_head, max_ctx_length, head_dim, device=device),  # key
-                              torch.empty(num_head, max_ctx_length, head_dim, device=device)) for _ in
-                             range(num_layers)]
+        self.device_cache = [
+            (torch.empty(num_head, max_ctx_length, head_dim, device=device, dtype=torch.half),  # key
+             torch.empty(num_head, max_ctx_length, head_dim, device=device, dtype=torch.half)) for _ in
+            range(num_layers)]
 
         # stores staged modules
         self.staged = []
         self.length = 0
 
+    @torch.inference_mode()
     def update(self, modules: List[TokenSequenceCache]):
 
-        # TODO: adopt in-place sorting to reduce redundant host-device memory copy
+        # TODO: adopt in-place sorting to reduce redundant host-device memory copies
 
         # cache rearrangement -> becomes new layout
         modules_ordered = sorted(modules, key=lambda e: e.usage_counter, reverse=True)
@@ -186,7 +188,7 @@ class SchemaCache:
             path, is_default_parent, u = stack.pop()
 
             for e in u.children:
-                if type(e) == TokenSequence and e.contains_union():
+                if type(e) == Module and e.contains_union():
                     stack.append((path + [u.name], is_default_parent, e))
 
                 elif type(e) == UnionModule:
@@ -301,7 +303,7 @@ class CacheEngine:
             return None
         return self.schemas[name].schema
 
-    def process(self, prompt: Prompt) -> Tuple[List[int], List[int], KVCache, List[int], List[int]]:
+    def process(self, prompt: Prompt, no_cache: bool = False) -> Tuple[List[int], List[int], Optional[KVCache]]:
 
         # assert that root tag matches engine signature
         if prompt.schema not in self.schemas:
@@ -314,12 +316,11 @@ class CacheEngine:
         orig_pos_ids_list = []
 
         used_sequences = []
-        kv_cache_list = []
         argument_ids_list = []
         argument_pos_ids_list = []
 
         # first add root level modules
-        stack: List[(ModuleRef, TokenSequence)] = [(prompt, schema)]
+        stack: List[(ModuleRef, Module)] = [(prompt, schema)]
 
         # for m in prompt.modules:
         #
@@ -334,10 +335,12 @@ class CacheEngine:
 
             # step 1. first add leaf nodes
             for m in module.token_sequences():
-                #kv_cache_list.append(cached.get_cache_l1(m))
+                # kv_cache_list.append(cached.get_cache_l1(m))
                 used_sequences.append(m)
-                orig_ids_list.append(m.token_ids())
-                orig_pos_ids_list.append(m.position_ids())
+
+                if no_cache:
+                    orig_ids_list.append(m.token_ids())
+                    orig_pos_ids_list.append(m.position_ids())
 
             # step 2. process parameter-argument pairs
             parameters = module.parameters()
@@ -352,7 +355,7 @@ class CacheEngine:
                 if parameter is None:
                     raise ValueError(f'There is no such parameter named {arg.name} in the module {module.name}')
 
-                argument_ids = self.tokenizer.encode_maxx(arg.value)
+                argument_ids = self.tokenizer.encode(arg.value)
 
                 if len(argument_ids) > parameter.length:
                     raise ValueError(
@@ -372,7 +375,7 @@ class CacheEngine:
                 stack.append((m, submodule))
 
         # add trailing text
-        text_token_ids = self.tokenizer.encode_maxx(prompt.text)
+        text_token_ids = self.tokenizer.encode(prompt.text)
         text_position_ids = list(range(len(schema), len(schema) + len(text_token_ids)))
 
         argument_ids_list.append(text_token_ids)
@@ -381,24 +384,26 @@ class CacheEngine:
         input_ids = list(itertools.chain(*argument_ids_list))
         position_ids = list(itertools.chain(*argument_pos_ids_list))
 
-        orig_input_ids = list(itertools.chain(*orig_ids_list))
-        orig_position_ids = list(itertools.chain(*orig_pos_ids_list))
+        if no_cache:
+            orig_input_ids = list(itertools.chain(*orig_ids_list))
+            orig_position_ids = list(itertools.chain(*orig_pos_ids_list))
 
-        # print([kv_cache[0].shape for kv_cache in kv_cache_list])
-        num_layers = len(kv_cache_list[0])
+            sorted_pairs = sorted(zip(orig_position_ids + position_ids, orig_input_ids + input_ids))
 
-        out_kv_cache = []
+            # Unpack the sorted pairs into two lists
+            orig_position_ids, orig_input_ids = zip(*sorted_pairs)
 
-        for i in range(num_layers):
-            k_cache_i = torch.cat([kv_cache[i][0] for kv_cache in kv_cache_list], dim=2)
-            v_cache_i = torch.cat([kv_cache[i][1] for kv_cache in kv_cache_list], dim=2)
-            out_kv_cache.append((k_cache_i, v_cache_i))
+            return orig_input_ids, orig_position_ids, None
+        else:
 
-        sorted_pairs = sorted(zip(orig_position_ids + position_ids, orig_input_ids + input_ids))
+            used_seq_caches = []
 
-        # Unpack the sorted pairs into two lists
-        orig_position_ids, orig_input_ids = zip(*sorted_pairs)
+            for s in used_sequences:
+                seq_cache = cached.get_cache_l1(s)
+                seq_cache.inc_usage_counter()
+                used_seq_caches.append(seq_cache)
 
-        # position_ids, token_ids = pad_unk(position_ids, input_ids, self.tokenizer.unk_token_id)
+            # update prompt cache. this incurs some memcpy overhead.
+            self.prompt_cache.update(used_seq_caches)
 
-        return input_ids, position_ids, out_kv_cache, orig_input_ids, orig_position_ids
+            return input_ids, position_ids, self.prompt_cache.cache

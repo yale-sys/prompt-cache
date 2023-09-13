@@ -37,7 +37,7 @@ class Tokenizer:
     def __init__(self, hf_tokenizer: LlamaTokenizer):
         self.hf_tokenizer = hf_tokenizer
 
-    def encode_maxx(self, text: str) -> List[int]:
+    def encode(self, text: str) -> List[int]:
         # Warning: this is a hack to remove bos_token
         token_ids = self.hf_tokenizer.encode(text, add_special_tokens=False)
         return token_ids
@@ -158,7 +158,7 @@ class Parameter(Element):
 
         if "scaffold" in root.attrib:
 
-            self._token_ids = tokenizer.encode_maxx(root.attrib["scaffold"])
+            self._token_ids = tokenizer.encode(root.attrib["scaffold"])
 
             if len(self._token_ids) > self.length:
                 raise ValueError(f'Scaffold for parameter {self.name} is too long')
@@ -187,7 +187,7 @@ class TokenSequence(Element):
         super().__init__(offset)
 
         self.text = text
-        self._token_ids = tokenizer.encode_maxx(text)
+        self._token_ids = tokenizer.encode(text)
         self._position_ids = list(range(self.offset, self.offset + len(self._token_ids)))
 
     def __len__(self) -> int:
@@ -204,7 +204,7 @@ class TokenSequence(Element):
 
 
 class UnionModule(Element):
-    modules: List[TokenSequence]
+    modules: List[Module]
     length: int
     scaffold_name: str
 
@@ -227,7 +227,7 @@ class UnionModule(Element):
             if e.tag != "module":
                 raise ValueError("Only <module> tags are allowed in union")
 
-            module = TokenSequence(self.offset, e, tokenizer)
+            module = Module(self.offset, e, tokenizer)
             self.modules.append(module)
             max_len = max(max_len, len(module))
 
@@ -259,7 +259,7 @@ class UnionModule(Element):
     def position_ids(self) -> List[int]:
         raise ValueError("Cannot get position_ids() on union. Try again on its scaffold")
 
-    def select(self, path: Optional[Union[str, Path]] = None) -> Optional[TokenSequence]:
+    def select(self, path: Optional[Union[str, Path]] = None) -> Optional[Module]:
 
         if path is None:
             return self.select(self.scaffold_name)
@@ -279,7 +279,7 @@ class UnionModule(Element):
         return None
 
 
-class TokenSequence(Element):
+class Module(Element):
     children: List[Element]
     length: int
     cache: bool
@@ -338,7 +338,7 @@ class TokenSequence(Element):
         for e in root:
             match e.tag:
                 case "module":
-                    m = TokenSequence(offset, e, tokenizer)
+                    m = Module(offset, e, tokenizer)
                     self._contains_union = self._contains_union or m._contains_union
 
                     # check namespace conflicts
@@ -404,7 +404,7 @@ class TokenSequence(Element):
     def get_scaffold(self, *paths: Path) -> Scaffold:
         return Scaffold(self, *paths)
 
-    def select(self, path: Union[str, Path]) -> Optional[TokenSequence]:
+    def select(self, path: Union[str, Path]) -> Optional[Module]:
         if type(path) == str:
             path = Path(path)
 
@@ -419,10 +419,10 @@ class TokenSequence(Element):
                     return p.select(path.next)
         return None
 
-    def modules(self) -> List[TokenSequence]:
+    def modules(self) -> List[Module]:
         modules = []
         for c in self.children:
-            if type(c) == TokenSequence:
+            if type(c) == Module:
                 modules.append(c)
             elif type(c) == UnionModule:
                 c = cast(UnionModule, c)
@@ -442,10 +442,10 @@ class TokenSequence(Element):
 
 # Scaffold is a special module that does not contain unions
 class Scaffold(Element):
-    module: TokenSequence
+    module: Module
     children: List[Element]
 
-    def __init__(self, module: TokenSequence, *paths: Path):
+    def __init__(self, module: Module, *paths: Path):
         super().__init__(module.offset, module.name)
         self.module = module
 
@@ -479,8 +479,8 @@ class Scaffold(Element):
 
                 self.children.append(scaffold)
 
-            elif type(e) == TokenSequence:
-                module = cast(TokenSequence, e)
+            elif type(e) == Module:
+                module = cast(Module, e)
                 scaffold = Scaffold(module, *[n.next for n in paths if n.head == module.name])
                 self.children.append(scaffold)
 
@@ -531,7 +531,7 @@ class Scaffold(Element):
 
 
 # Schema is a root module that cannot contain parameters
-class Schema(TokenSequence):
+class Schema(Module):
     tokenizer: Tokenizer
 
     def __init__(self, spec: Union[str, lxml.etree.Element], tokenizer: Tokenizer):

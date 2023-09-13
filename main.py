@@ -3,7 +3,7 @@ from transformers import (
 
 )
 
-from promptcache import Schema, Prompt, CompactSpaces, FormatLlama2Conversation, read_file, CacheEngine, \
+from promptcache import Prompt, CompactSpaces, FormatLlama2Conversation, read_file, CacheEngine, \
     GenerationEngine, GenerationParameters, llama2_template
 
 model_path = "meta-llama/Llama-2-13b-chat-hf"
@@ -14,7 +14,7 @@ def main():
     model = LlamaForCausalLM.from_pretrained(model_path,
                                              load_in_8bit=True,
                                              device_map="auto")
-    cache_engine = CacheEngine(model, tokenizer)
+    cache_engine = CacheEngine(3000, model, tokenizer)
     gen_engine = GenerationEngine(model, tokenizer)
 
     preproc = [
@@ -57,7 +57,7 @@ def main():
         </personality>
     """
 
-    use_cache = False
+    disable_prompt_cache = False
 
     # text chat interface
     while True:
@@ -74,13 +74,9 @@ def main():
 
         prompt = Prompt(prompt_text + "</prompt>", preproc)
 
-        token_ids, position_ids, cache, orig_token_ids, orig_pos_ids = cache_engine.process(prompt)
+        token_ids, position_ids, cache = cache_engine.process(prompt, no_cache=disable_prompt_cache)
 
-        if use_cache:
-            output_stream = gen_engine.generate(token_ids, position_ids, parameter, cache, stream_interval=2)
-
-        else:
-            output_stream = gen_engine.generate(orig_token_ids, orig_pos_ids, parameter, cache=None, stream_interval=2)
+        output_stream = gen_engine.generate(token_ids, position_ids, parameter, cache, stream_interval=2)
 
         print(f"Assistant: ", end="", flush=True)
 

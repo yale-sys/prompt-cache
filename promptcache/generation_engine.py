@@ -71,21 +71,6 @@ class GenerationEngine:
 
         position_offset = max(position_ids) + 1
 
-        # upload cache to GPU
-        start = torch.cuda.Event(enable_timing=True)
-        end = torch.cuda.Event(enable_timing=True)
-        torch.cuda.synchronize()
-
-        start.record()
-        if cache is not None:
-            cache = [(cache[i][0].cuda(non_blocking=True),
-                      cache[i][1].cuda(non_blocking=True)) for i in range(len(cache))]
-
-        end.record()
-        torch.cuda.synchronize()
-
-        memory_upload_time = start.elapsed_time(end)
-
         past_key_values = None
         new_token_id = 0
 
@@ -102,29 +87,28 @@ class GenerationEngine:
                 position_ids = torch.tensor([position_ids], device=device, dtype=torch.long)
                 use_cache = True
 
-                ffff = None
-                if cache is not None:
-                    ffff = [(cache[i][0].to(device), cache[i][1].to(device)) for i in range(len(cache))]
+                # add redundant batch dim
+                cache = [(k[0].unsqueeze(0), k[1].unsqueeze(0)) for k in cache]
 
                 start = torch.cuda.Event(enable_timing=True)
                 end = torch.cuda.Event(enable_timing=True)
+
                 torch.cuda.synchronize()
 
                 start.record()
                 out = self.model(input_ids=input_ids,
                                  position_ids=position_ids,
-                                 past_key_values=ffff,
+                                 past_key_values=cache,
                                  use_cache=use_cache)
                 end.record()
                 torch.cuda.synchronize()
                 inference_time += start.elapsed_time(end)
 
-                print('Initial response time: ', inference_time, memory_upload_time)
+                print('Initial response time: ', inference_time)
 
                 logits = out.logits
                 past_key_values = out.past_key_values
 
-                del ffff
             else:
 
                 # upload to the GPU
