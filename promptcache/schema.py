@@ -204,7 +204,7 @@ class TokenSequence(Element):
 
 
 class UnionModule(Element):
-    modules: List[Module]
+    modules: List[TokenSequence]
     length: int
     scaffold_name: str
 
@@ -227,7 +227,7 @@ class UnionModule(Element):
             if e.tag != "module":
                 raise ValueError("Only <module> tags are allowed in union")
 
-            module = Module(self.offset, e, tokenizer)
+            module = TokenSequence(self.offset, e, tokenizer)
             self.modules.append(module)
             max_len = max(max_len, len(module))
 
@@ -259,7 +259,7 @@ class UnionModule(Element):
     def position_ids(self) -> List[int]:
         raise ValueError("Cannot get position_ids() on union. Try again on its scaffold")
 
-    def select(self, path: Optional[Union[str, Path]] = None) -> Optional[Module]:
+    def select(self, path: Optional[Union[str, Path]] = None) -> Optional[TokenSequence]:
 
         if path is None:
             return self.select(self.scaffold_name)
@@ -279,7 +279,7 @@ class UnionModule(Element):
         return None
 
 
-class Module(Element):
+class TokenSequence(Element):
     children: List[Element]
     length: int
     cache: bool
@@ -338,7 +338,7 @@ class Module(Element):
         for e in root:
             match e.tag:
                 case "module":
-                    m = Module(offset, e, tokenizer)
+                    m = TokenSequence(offset, e, tokenizer)
                     self._contains_union = self._contains_union or m._contains_union
 
                     # check namespace conflicts
@@ -404,7 +404,7 @@ class Module(Element):
     def get_scaffold(self, *paths: Path) -> Scaffold:
         return Scaffold(self, *paths)
 
-    def select(self, path: Union[str, Path]) -> Optional[Module]:
+    def select(self, path: Union[str, Path]) -> Optional[TokenSequence]:
         if type(path) == str:
             path = Path(path)
 
@@ -419,10 +419,10 @@ class Module(Element):
                     return p.select(path.next)
         return None
 
-    def modules(self) -> List[Module]:
+    def modules(self) -> List[TokenSequence]:
         modules = []
         for c in self.children:
-            if type(c) == Module:
+            if type(c) == TokenSequence:
                 modules.append(c)
             elif type(c) == UnionModule:
                 c = cast(UnionModule, c)
@@ -442,10 +442,10 @@ class Module(Element):
 
 # Scaffold is a special module that does not contain unions
 class Scaffold(Element):
-    module: Module
+    module: TokenSequence
     children: List[Element]
 
-    def __init__(self, module: Module, *paths: Path):
+    def __init__(self, module: TokenSequence, *paths: Path):
         super().__init__(module.offset, module.name)
         self.module = module
 
@@ -479,8 +479,8 @@ class Scaffold(Element):
 
                 self.children.append(scaffold)
 
-            elif type(e) == Module:
-                module = cast(Module, e)
+            elif type(e) == TokenSequence:
+                module = cast(TokenSequence, e)
                 scaffold = Scaffold(module, *[n.next for n in paths if n.head == module.name])
                 self.children.append(scaffold)
 
@@ -531,7 +531,7 @@ class Scaffold(Element):
 
 
 # Schema is a root module that cannot contain parameters
-class Schema(Module):
+class Schema(TokenSequence):
     tokenizer: Tokenizer
 
     def __init__(self, spec: Union[str, lxml.etree.Element], tokenizer: Tokenizer):

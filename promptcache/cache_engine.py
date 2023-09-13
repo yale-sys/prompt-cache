@@ -13,7 +13,7 @@ from transformers import (
 )
 
 from .prompt import Preprocessor, Prompt, ModuleRef
-from .schema import Parameter, Module, UnionModule, Schema, Tokenizer, TokenSequence, Path
+from .schema import Parameter, TokenSequence, UnionModule, Schema, Tokenizer, Path
 
 # list - each decoding layer in transformer
 KVCache = List[Tuple[torch.Tensor, torch.Tensor]]
@@ -40,14 +40,20 @@ def pad_unk(position_ids: List[int], token_ids: List[int], unk_token_id: int):
     return padded_position_ids, padded_token_ids
 
 
-class ModuleCache:
-    module: Module
+class TokenSequenceCache:
+    token_sequence: TokenSequence
     host_cache: KVCache
     device_cache: Optional[KVCache] = None
 
-    def __init__(self, module: Module, cache: KVCache):
-        self.module = module
+    usage_counter: int = 0
+
+    def __init__(self, seq: TokenSequence, cache: KVCache):
+        self.token_sequence = seq
         self.host_cache = cache
+        self.usage_counter = 0
+
+    def inc_usage_counter(self):
+        self.usage_counter += 1
 
     def upload(self, device: str):
         if self.device_cache is None:
@@ -66,40 +72,70 @@ class ModuleCache:
             return self.host_cache
         return self.device_cache
 
+    def __len__(self):
+        return len(self.token_sequence)
+
 
 # this persists in the device memory
 class PromptCache:
-    staged: List[ModuleCache]
+    staged: List[TokenSequenceCache]
+    length: int
 
     # only device cache
-    cache: KVCache
+    max_ctx_length: int
+    num_head: int
+    head_dim: int
+    device_cache: KVCache
 
-    def __init__(self, device: str):
+    # hidden_dim is usually num_head * head_dim
+    def __init__(self, max_ctx_length: int, num_layers: int, num_head: int, head_dim: int, device: torch.device):
+
+        self.max_ctx_length = max_ctx_length
+        self.num_head = num_head
+        self.head_dim = head_dim
+        self.device_cache = [(torch.empty(num_head, max_ctx_length, head_dim, device=device),  # key
+                              torch.empty(num_head, max_ctx_length, head_dim, device=device)) for _ in
+                             range(num_layers)]
 
         # stores staged modules
         self.staged = []
+        self.length = 0
 
-    def update(self, modules: List[ModuleCache]):
+    def update(self, modules: List[TokenSequenceCache]):
 
+        # TODO: adopt in-place sorting to reduce redundant host-device memory copy
+
+        # cache rearrangement -> becomes new layout
+        modules_ordered = sorted(modules, key=lambda e: e.usage_counter, reverse=True)
         updates = []
+        # staged modules are already sorted.
 
-        for m in modules:
-            for s in self.staged:
-                # we should not compare s.module != m.module because they can be from different level of caches.
-                if s.module.offset == m.module.offset and s != m:
-                    updates.append(m)
-                    break
+        # skip common park
+        diff = False
+        offset = 0
+        for (m, m_prev) in zip(modules_ordered, self.staged):
+            if m.token_sequence != m_prev.token_sequence:
+                diff = True
+            if diff:
+                updates.append(m)
+            else:
+                offset += len(m)
 
         # update the cache
         for m in updates:
-            st = m.module.offset
-            ed = st + len(m.module)
+            st = offset
+            ed = st + len(m)
 
-            for i in range(len(self.cache)):
-                self.cache[i][0][:, :, st:ed, :].copy_(m.cache[i][0], non_blocking=True)
-                self.cache[i][1][:, :, st:ed, :].copy_(m.cache[i][1], non_blocking=True)
+            for i in range(len(self.device_cache)):
+                self.device_cache[i][0][:, st:ed, :].copy_(m.device_cache[i][0], non_blocking=True)
+                self.device_cache[i][1][:, st:ed, :].copy_(m.device_cache[i][1], non_blocking=True)
+
+            offset += len(m)
+
+        # re-organize the cache
 
         self.staged = modules
+        self.length = offset
 
         # compare current setup with new setup
         # rewrite
@@ -111,13 +147,20 @@ class PromptCache:
         # then if the space runs out,
         #    - evict most unpopular ones.
 
-        # we don't have to worry about the surplus tokens because it will be masked.
+    def __len__(self):
+        return self.length
+
+    @property
+    def cache(self) -> KVCache:
+        return [(self.device_cache[i][0][:, :self.length, :],
+                 self.device_cache[i][1][:, :self.length, :])
+                for i in range(len(self.device_cache))]
 
 
 class SchemaCache:
     schema: Schema
-    cache_l1: Dict[int, KVCache]
-    cache_l2: Dict[Tuple[int, int], Tuple[KVCache, KVCache]]
+    cache_l1: Dict[int, TokenSequenceCache]
+    cache_l2: Dict[Tuple[int, int], Tuple[TokenSequenceCache, TokenSequenceCache]]
 
     model: LlamaForCausalLM
 
@@ -143,7 +186,7 @@ class SchemaCache:
             path, is_default_parent, u = stack.pop()
 
             for e in u.children:
-                if type(e) == Module and e.contains_union():
+                if type(e) == TokenSequence and e.contains_union():
                     stack.append((path + [u.name], is_default_parent, e))
 
                 elif type(e) == UnionModule:
@@ -165,7 +208,6 @@ class SchemaCache:
             position_ids = scaffold.position_ids()
 
             # position_ids, token_ids = pad_unk(position_ids, token_ids, self.schema.tokenizer.hf_tokenizer.eos_token_id)
-
             # print(token_ids)
 
             print(f"Caching module @{self.schema.name}/{path} ({len(token_ids)} tokens)...")
@@ -195,19 +237,23 @@ class SchemaCache:
                 st = position_ids.index(offset)
                 ed = st + length
 
-                self.cache_l1[id(tc)] = [(kv_cache[i][0][:, :, st:ed, :].detach().cpu(),
-                                          kv_cache[i][1][:, :, st:ed, :].detach().cpu())
-                                         for i in range(len(kv_cache))]
+                tc_cache = [(kv_cache[i][0][:, :, st:ed, :].squeeze(0).detach().cpu(),
+                             kv_cache[i][1][:, :, st:ed, :].squeeze(0).detach().cpu())
+                            for i in range(len(kv_cache))]
+
+                self.cache_l1[id(tc)] = TokenSequenceCache(tc, tc_cache)
 
         # upload to gpu.
 
-    def get_cache_l1(self, seq: TokenSequence) -> Optional[KVCache]:
+    def get_cache_l1(self, seq: TokenSequence) -> Optional[TokenSequenceCache]:
         seq_id = id(seq)
         if seq_id not in self.cache_l1:
             return None
         return self.cache_l1[seq_id]
 
-    def get_cache_l2(self, seq1: TokenSequence, seq2: TokenSequence) -> Optional[Tuple[KVCache, KVCache]]:
+    def get_cache_l2(self, seq1: TokenSequence, seq2: TokenSequence) -> Optional[
+        Tuple[TokenSequenceCache, TokenSequenceCache]]:
+
         seq1_id, seq2_id = max(id(seq1), id(seq2)), min(id(seq1), id(seq2))
         if (seq1_id, seq2_id) not in self.cache_l2:
             return None
@@ -225,11 +271,21 @@ class CacheEngine:
     tokenizer: Tokenizer
     schemas: Dict[str, SchemaCache]
 
-    def __init__(self, model: LlamaForCausalLM, tokenizer: LlamaTokenizer):
+    prompt_cache: PromptCache
+
+    def __init__(self, max_ctx_length: int, model: LlamaForCausalLM, tokenizer: LlamaTokenizer):
 
         self.model = model
         self.tokenizer = Tokenizer(tokenizer)
         self.schemas = dict()
+
+        self.prompt_cache = PromptCache(
+            max_ctx_length=max_ctx_length,
+            num_layers=model.config.num_hidden_layers,
+            num_head=model.config.num_attention_heads,
+            head_dim=model.config.hidden_size // model.config.num_attention_heads,
+            device=model.device
+        )
 
     def add_schema(self, schema: Union[str, Schema]):
         if type(schema) == str:
@@ -257,12 +313,13 @@ class CacheEngine:
         orig_ids_list = []
         orig_pos_ids_list = []
 
+        used_sequences = []
         kv_cache_list = []
         argument_ids_list = []
         argument_pos_ids_list = []
 
         # first add root level modules
-        stack: List[(ModuleRef, Module)] = [(prompt, schema)]
+        stack: List[(ModuleRef, TokenSequence)] = [(prompt, schema)]
 
         # for m in prompt.modules:
         #
@@ -277,7 +334,8 @@ class CacheEngine:
 
             # step 1. first add leaf nodes
             for m in module.token_sequences():
-                kv_cache_list.append(cached.get_cache_l1(m))
+                #kv_cache_list.append(cached.get_cache_l1(m))
+                used_sequences.append(m)
                 orig_ids_list.append(m.token_ids())
                 orig_pos_ids_list.append(m.position_ids())
 
