@@ -93,8 +93,6 @@ class GenerationEngine:
                 start = torch.cuda.Event(enable_timing=True)
                 end = torch.cuda.Event(enable_timing=True)
 
-                torch.cuda.synchronize()
-
                 start.record()
                 out = self.model(input_ids=input_ids,
                                  position_ids=position_ids,
@@ -104,7 +102,7 @@ class GenerationEngine:
                 torch.cuda.synchronize()
                 inference_time += start.elapsed_time(end)
 
-                print('Initial response time: ', inference_time)
+                print(f'Response time: {inference_time:.2f} ms')
 
                 logits = out.logits
                 past_key_values = out.past_key_values

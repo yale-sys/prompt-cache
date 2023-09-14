@@ -76,6 +76,9 @@ def main():
 
         token_ids, position_ids, cache = cache_engine.process(prompt, no_cache=disable_prompt_cache)
 
+        if disable_prompt_cache:
+            assert cache is None
+
         output_stream = gen_engine.generate(token_ids, position_ids, parameter, cache, stream_interval=2)
 
         print(f"Assistant: ", end="", flush=True)

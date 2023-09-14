@@ -98,6 +98,8 @@ class PromptCache:
              torch.empty(num_head, max_ctx_length, head_dim, device=device, dtype=torch.half)) for _ in
             range(num_layers)]
 
+        print(num_head, max_ctx_length, head_dim)
+
         # stores staged modules
         self.staged = []
         self.length = 0
@@ -109,19 +111,17 @@ class PromptCache:
 
         # cache rearrangement -> becomes new layout
         modules_ordered = sorted(modules, key=lambda e: e.usage_counter, reverse=True)
-        updates = []
-        # staged modules are already sorted.
 
-        # skip common park
-        diff = False
-        offset = 0
+        retained = []
+
         for (m, m_prev) in zip(modules_ordered, self.staged):
-            if m.token_sequence != m_prev.token_sequence:
-                diff = True
-            if diff:
-                updates.append(m)
+            if m.token_sequence == m_prev.token_sequence:
+                retained.append(m)
             else:
-                offset += len(m)
+                break
+
+        offset = sum(map(len, retained))
+        updates = modules_ordered[len(retained):]
 
         # update the cache
         for m in updates:
@@ -129,8 +129,11 @@ class PromptCache:
             ed = st + len(m)
 
             for i in range(len(self.device_cache)):
-                self.device_cache[i][0][:, st:ed, :].copy_(m.device_cache[i][0], non_blocking=True)
-                self.device_cache[i][1][:, st:ed, :].copy_(m.device_cache[i][1], non_blocking=True)
+                k_cache_tgt, v_cache_tgt = self.device_cache[i]
+                k_cache_src, v_cache_src = m.cache[i]
+
+                k_cache_tgt[:, st:ed, :].copy_(k_cache_src, non_blocking=True)
+                v_cache_tgt[:, st:ed, :].copy_(v_cache_src, non_blocking=True)
 
             offset += len(m)
 
@@ -138,16 +141,6 @@ class PromptCache:
 
         self.staged = modules
         self.length = offset
-
-        # compare current setup with new setup
-        # rewrite
-        #    - from host
-        #    - from device
-        # use Tensor.copy_ to do this. (set non_blocking=True)
-
-        # new cache blocks will be stored in the gpu.
-        # then if the space runs out,
-        #    - evict most unpopular ones.
 
     def __len__(self):
         return self.length
@@ -305,6 +298,11 @@ class CacheEngine:
 
     def process(self, prompt: Prompt, no_cache: bool = False) -> Tuple[List[int], List[int], Optional[KVCache]]:
 
+        start = torch.cuda.Event(enable_timing=True)
+        end = torch.cuda.Event(enable_timing=True)
+
+        start.record()
+
         # assert that root tag matches engine signature
         if prompt.schema not in self.schemas:
             raise ValueError(f'There is no such layout named {prompt.schema} in the cache')
@@ -393,6 +391,12 @@ class CacheEngine:
             # Unpack the sorted pairs into two lists
             orig_position_ids, orig_input_ids = zip(*sorted_pairs)
 
+            end.record()
+            torch.cuda.synchronize()
+            cache_time = start.elapsed_time(end)
+
+            print(f'Cache overhead: {cache_time:.2f} ms')
+
             return orig_input_ids, orig_position_ids, None
         else:
 
@@ -405,5 +409,11 @@ class CacheEngine:
 
             # update prompt cache. this incurs some memcpy overhead.
             self.prompt_cache.update(used_seq_caches)
+
+            end.record()
+            torch.cuda.synchronize()
+            cache_time = start.elapsed_time(end)
+
+            print(f'Cache overhead: {cache_time:.2f} ms')
 
             return input_ids, position_ids, self.prompt_cache.cache
