@@ -261,11 +261,9 @@ def chat_loop(
 
     tokenizer = AutoTokenizer.from_pretrained(model_path)
 
-    model = LlamaForCausalLM.from_pretrained(model_path,
-                                             load_in_8bit=True,
-                                             device_map="auto")
+    model = LlamaForCausalLM.from_pretrained(model_path)
 
-    device = 'cuda'
+    device = 'cpu'
 
     conv = llama2_template()
 

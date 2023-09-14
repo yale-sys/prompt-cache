@@ -159,16 +159,17 @@ class SchemaCache:
 
     model: LlamaForCausalLM
 
-    def __init__(self, schema: Schema, model: LlamaForCausalLM):
+    def __init__(self, schema: Schema, model: LlamaForCausalLM, skip_computation: bool = False):
         self.schema = schema
         self.model = model
         self.cache_l1 = dict()
         self.cache_l2 = dict()
 
-        self._process()
+        if not skip_computation:
+            self._process()
 
     @torch.inference_mode()
-    def _process(self):
+    def _process(self, skip_computation: bool = False):
 
         # Get all possible L1 scaffolds
         stack = list()
@@ -232,12 +233,23 @@ class SchemaCache:
                 st = position_ids.index(offset)
                 ed = st + length
 
-                tc_cache = [(kv_cache[i][0][:, :, st:ed, :].squeeze(0).detach().cpu(),
-                             kv_cache[i][1][:, :, st:ed, :].squeeze(0).detach().cpu())
-                            for i in range(len(kv_cache))]
+                # it is already on the cpu.
+                if self.model.device.type == 'cpu':
+                    tc_cache = [(kv_cache[i][0][:, :, st:ed, :].squeeze(0).detach(),
+                                 kv_cache[i][1][:, :, st:ed, :].squeeze(0).detach())
+                                for i in range(len(kv_cache))]
+                else:
+                    tc_cache = [(kv_cache[i][0][:, :, st:ed, :].squeeze(0).detach().cpu(),
+                                 kv_cache[i][1][:, :, st:ed, :].squeeze(0).detach().cpu())
+                                for i in range(len(kv_cache))]
 
                 self.cache_l1[id(tc)] = TokenSequenceCache(tc, tc_cache)
 
+            if self.model.device.type != 'cpu':
+                del d_output
+
+        gc.collect()
+        torch.cuda.empty_cache()
         # upload to gpu.
 
     def get_cache_l1(self, seq: TokenSequence) -> Optional[TokenSequenceCache]:
@@ -282,14 +294,14 @@ class CacheEngine:
             device=model.device
         )
 
-    def add_schema(self, schema: Union[str, Schema]):
+    def add_schema(self, schema: Union[str, Schema], skip_computation: bool = False):
         if type(schema) == str:
             schema = Schema(schema, self.tokenizer)
 
         if schema.name in self.schemas:
             raise ValueError(f'There is already a schema named {schema.name} in the cache')
 
-        self.schemas[schema.name] = SchemaCache(schema, self.model)
+        self.schemas[schema.name] = SchemaCache(schema, self.model, skip_computation)
 
     def get_schema(self, name: str) -> Optional[Schema]:
         if name not in self.schemas:
@@ -319,14 +331,6 @@ class CacheEngine:
 
         # first add root level modules
         stack: List[(ModuleRef, Module)] = [(prompt, schema)]
-
-        # for m in prompt.modules:
-        #
-        #     module = schema.select(m.name)
-        #     if module is None:
-        #         raise ValueError(f'There is no such module named {m.name} in the schema {schema.name}')
-        #
-        #     stack.append((m, module))
 
         while len(stack) > 0:
             ref, module = stack.pop()

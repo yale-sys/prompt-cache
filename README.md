@@ -7,7 +7,9 @@ Modular and structured prompt caching for low-latency LLM inference
 #### Implementation
 
 - [x] Proof-of-concept
-- [-] Better memory management
+- [ ] Better memory management
+    - [ ] Custom cache allocator (memory ballooning: staged vs. retained)
+- [ ] CPU inference
 - [ ] Support various LLMs
 - [ ] Conditional cache (layer 2 / layer 3)
 - [ ] Cache quantization (4bit / 8bit)
@@ -93,9 +95,11 @@ Example: [/benchmark/schema_persona_long.xml](./benchmark/schema_persona_long.xm
 </prompt>
 ```
 
-The result (on a NVIDIA RTX 4090):
+The result
+GPU: NVIDIA RTX 4090
+CPU: Intel i9-13900K
 
-- **Regular KV cache** (response time:  286.9ms)
+- **Regular KV cache** (response time:  GPU: 286.9ms, CPU: 17917.14 ms)
 
 ```
 User: Introduce about yourself.
@@ -105,7 +109,7 @@ Assistant: Hello! My name is Alex, and I am a 25-year-old woman who lives in a b
  my work and am constantly looking for opportunities to learn and grow in my
 ```
 
-- **With PromptCache** (response time: 78.2ms)
+- **With PromptCache** (response time: GPU: 78.2ms, CPU: 511.31ms)
 
 ```
 User: Introduce about yourself.

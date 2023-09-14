@@ -85,10 +85,12 @@ class GenerationEngine:
 
                 input_ids = torch.tensor([token_ids], device=device, dtype=torch.long)
                 position_ids = torch.tensor([position_ids], device=device, dtype=torch.long)
-                use_cache = True
+                use_cache = False
 
                 # add redundant batch dim
-                cache = [(k[0].unsqueeze(0), k[1].unsqueeze(0)) for k in cache]
+                if cache is not None:
+                    cache = [(k[0].unsqueeze(0), k[1].unsqueeze(0)) for k in cache]
+                    use_cache = True
 
                 start = torch.cuda.Event(enable_timing=True)
                 end = torch.cuda.Event(enable_timing=True)

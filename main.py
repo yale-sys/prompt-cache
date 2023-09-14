@@ -1,3 +1,5 @@
+import torch.cuda
+
 from transformers import (
     AutoTokenizer, LlamaForCausalLM, LlamaTokenizer,
 
@@ -6,24 +8,36 @@ from transformers import (
 from promptcache import Prompt, CompactSpaces, FormatLlama2Conversation, read_file, CacheEngine, \
     GenerationEngine, GenerationParameters, llama2_template
 
-model_path = "meta-llama/Llama-2-13b-chat-hf"
-
 
 def main():
+    ### Configurations ###
+    model_path = "meta-llama/Llama-2-7b-chat-hf"
+    disable_cuda = True
+    disable_prompt_cache = True
+
+    ######################
+
     tokenizer = LlamaTokenizer.from_pretrained(model_path)
     model = LlamaForCausalLM.from_pretrained(model_path,
-                                             load_in_8bit=True,
-                                             device_map="auto")
-    cache_engine = CacheEngine(3000, model, tokenizer)
+                                             load_in_8bit=True if not disable_cuda else False,
+                                             device_map="auto" if not disable_cuda else None)
+    cache_engine = CacheEngine(2500, model, tokenizer)
     gen_engine = GenerationEngine(model, tokenizer)
 
     preproc = [
         CompactSpaces(),
         FormatLlama2Conversation()
     ]
+    # 14649
+    # 16869
+    # torch.cuda.synchronize()
+    # print(f'Mem: {torch.cuda.memory_allocated(0) / (1e6):.2f} MB')
 
-    cache_engine.add_schema(read_file("./benchmark/schema_mbti.xml", preproc))
-    cache_engine.add_schema(read_file("./benchmark/schema_persona_long.xml", preproc))
+    # cache_engine.add_schema(read_file("./benchmark/schema_mbti.xml", preproc))
+    cache_engine.add_schema(read_file("./benchmark/schema_persona_long.xml", preproc), skip_computation=True)
+
+    # torch.cuda.synchronize()
+    # print(f'Mem: {torch.cuda.memory_allocated(0) / (1e6):.2f} MB')
 
     parameter = GenerationParameters(
         temperature=0.1,
@@ -34,7 +48,7 @@ def main():
         stop_token_ids=[tokenizer.eos_token_id],
     )
 
-    prompt_text = "<prompt schema='mbti'> <E/><N/><T/><P/>"
+    # prompt_text = "<prompt schema='mbti'> <E/><N/><T/><P/>"
     prompt_text = """
     <prompt schema='persona'>
         <age>
@@ -56,8 +70,6 @@ def main():
             <introverted/>
         </personality>
     """
-
-    disable_prompt_cache = False
 
     # text chat interface
     while True:
