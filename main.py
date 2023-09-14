@@ -12,6 +12,22 @@ from promptcache import Prompt, CompactSpaces, FormatLlama2Conversation, read_fi
 def main():
     ### Configurations ###
     model_path = "meta-llama/Llama-2-7b-chat-hf"
+
+    models = [
+        "BAAI/AquilaChat-7B",
+        "baichuan-inc/Baichuan2-7B-Chat",
+        "bigscience/bloomz",
+        "tiiuae/falcon-7b",
+        "gpt2",
+        "bigcode/starcoder",
+        "EleutherAI/gpt-j-6b",
+        "databricks/dolly-v2-12b",
+        "internlm/internlm-chat-7b",
+        "mosaicml/mpt-7b",
+        "Qwen/Qwen-7B-Chat"
+
+    ]
+
     disable_cuda = True
     disable_prompt_cache = True
 

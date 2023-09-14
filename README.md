@@ -9,10 +9,10 @@ Modular and structured prompt caching for low-latency LLM inference
 - [x] Proof-of-concept
 - [ ] Better memory management
     - [ ] Custom cache allocator (memory ballooning: staged vs. retained)
-- [ ] CPU inference
+- [x] CPU inference
 - [ ] Support various LLMs
 - [ ] Conditional cache (layer 2 / layer 3)
-- [ ] Cache quantization (4bit / 8bit)
+- [ ] Cache compression
 - [ ] Pipelined generation
 
 ### Setup
@@ -96,8 +96,8 @@ Example: [/benchmark/schema_persona_long.xml](./benchmark/schema_persona_long.xm
 ```
 
 The result
-GPU: NVIDIA RTX 4090
-CPU: Intel i9-13900K
+
+GPU: NVIDIA RTX 4090  / CPU: Intel i9-13900K
 
 - **Regular KV cache** (response time:  GPU: 286.9ms, CPU: 17917.14 ms)
 
