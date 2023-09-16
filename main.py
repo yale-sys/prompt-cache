@@ -22,7 +22,9 @@ def main():
         FormatLlama2Conversation()
     ]
 
-    cache_engine.add_schema(read_file("./benchmark/schema_marco.xml", preproc))
+    use_cache = True
+
+    cache_engine.add_schema(read_file("./benchmark/schema_industrial.xml", preproc))
 
     parameter = GenerationParameters(
         temperature=0.0,
@@ -34,29 +36,24 @@ def main():
     )
 
     prompt_text = """
-    <prompt schema='marco'>
-        <walmart>
-            <chunk1/>
-            <chunk2/>
-            <chunk3/>
-            <chunk4/>
-        </walmart>
+    <prompt schema='industrial'>
+        <okuma>
+            <chunk0/>
+        </okuma>
     """
-
-    use_cache = True
 
     # text chat interface
     while True:
-        try:
-            inp = input("User: ")
-        except EOFError:
-            inp = ""
+        #try:
+        #    inp = input("User: ")
+        #except EOFError:
+        #    inp = ""
 
-        if inp == "exit" or not inp:
-            print("Terminating...")
-            break
+        #if inp == "exit" or not inp:
+        #    print("Terminating...")
+        #    break
 
-        prompt_text += f"<user>{inp}</user>"
+        #prompt_text += f"<user>{inp}</user>"
 
         prompt = Prompt(prompt_text + "</prompt>", preproc)
 
@@ -64,7 +61,6 @@ def main():
 
         if use_cache:
             output_stream = gen_engine.generate(token_ids, position_ids, parameter, cache, stream_interval=2)
-
         else:
             output_stream = gen_engine.generate(orig_token_ids, orig_pos_ids, parameter, cache=None, stream_interval=2)
 
@@ -72,18 +68,17 @@ def main():
 
         resp = ""
         final_output = None
+        pre = 0
         for outputs in output_stream:
             final_output = outputs
-        #     print("Output: ", outputs)
-        #     output_text = outputs.new_text.strip().split(" ")
-        #     now = len(output_text) - 1
-        #     if now > pre:
-        #         tt = " ".join(output_text[pre:now])
-        #         resp += tt + " "
-        #         #print(tt, end=" ", flush=True)
-        #         pre = now
-        print(final_output.text)
-        
+            output_text = outputs.new_text.strip().split(" ")
+            now = len(output_text) - 1
+            if now > pre:
+                tt = " ".join(output_text[pre:now])
+                resp += tt + " "
+                print(tt, end=" ", flush=True)
+                pre = now
+        #print(resp)
         print("\n")
         prompt_text += f"<assistant>{resp}</assistant>"
 
