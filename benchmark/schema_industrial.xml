@@ -1,0 +1,83 @@
+<schema name="industrial">
+
+    <system>
+      Please read this document about Supreme Vacuum Pouches.
+    </system>
+
+    <user>
+      <module name="okuma">
+	<union scaffold="chunk0">
+	  <module name="chunk0">
+Specifications:
+
+Our bags are made of the thickness of between 60µ and 180µ perfectly covered with a superior quality paper to prevent any entry of oxygen.
+
+The Pouches are covered with a special treatment inner film at the barrier layer that extends its shelf life. This enables them to preserve food four to five times when compared to plastic bags or containers.
+
+Excellent aroma retention power
+
+Available as a medium barrier (PA/PE) or high barrier (PA/EVOH/PE)
+
+Standard or cook-in (sous vide)
+
+Superior abrasion and puncture resistance
+
+Three side seal or tubular (bottom seal)
+
+Several standard thicknesses
+
+High-quality flexo-printing
+
+Superior optics
+Features:
+
+    The vacuum pack gives an extended shelf life
+    Protective gas keeps the product fresh without preservatives
+    Excellent machine handling such that vacuum pouches do not curl
+    Has extremely high gas and moisture barrier properties
+    Possesses very good hot tack, seal properties, transparency
+    Excellent mechanical properties at low thickness, great cost-efficiency
+    Very good resistance to puncture and tearing
+    Wide range of oxygen transmission rates for an increased the self life-custom design for a specific application
+    Overpacking to protect against handling for hygiene during transport and presentation
+    Vacuum packing is the way to go nowadays. Nobody wants to throw away the food leftovers. For those that don’t possess fridges, this can be the best way to preserve food by using our food vacuum pouches.
+    The food vacuum pouches reduce the atmospheric oxygen and hence reduce the growth of aerobic bacteria which causes food decay. Food packages also prevent the most volatile components from evaporation.
+    The main idea behind food vacuum bags is to remove air which is the main cause of food decay.
+	  </module>
+	</union>
+      </module>
+        <module name="supreme">
+            <union scaffold="chunk1">
+              <module name="chunk1">
+Light weight, easy and quick assembly - Results in extensive saving in time and labour.
+
+Ideal and safest system for carrying potable water - PP-R is absolutely free from corrosion and negative biological effects. It does not break down even under the harshest water conditions; hence the quality of water never deteriorates. It is in full compliance with the International standards on the use of plastic materials for the transportation of potable water.
+
+Safe and watertight joints - Joints are prepared by the fusion process using a poly fusion device. This process gives homogeneous, integral and watertight joints, which lasts for a long time.
+
+Excellent resistance to corrosion and chemical attacks - PP-R pipes and fittings are stable against the majority of known aggressive and toxic chemicals, aggressive soils and fluids in the external environment.
+
+Reduced head loss - Mirror smooth inside surface ensures high flow rates and very low friction losses.
+
+Low thermal conductivity - Results in saving insulation costs, thereby reducing overall operational costs.
+
+Free from scaling - Due to the unique properties of PP-R limestone or other deposits cannot form and hence there is no scaling or blockage in the pipelines.
+
+High impact strength - Indo Green® PP-R has a very good impact strength and hence no possibility of any breakage..
+
+Low on sound - The sound-dampening property of PP-R is a major attraction in plumbing, flushing, and pressurized flow applications.
+
+Long operational durability - The Indo Green® system ensures a minimum of 50 years of trouble-free performance.
+
+Highly economical in long run - This system is the most cost-effective than any other plumbing system. Moreover, due to savings in installation and insulation costs, this system is even comparable with standard make class-B GI piping systems. Besides the above, it offers very good resistance to frost, abrasion and stray current, and is considered to be the most suitable in seismic zones.
+
+Distinguishing features of Indo Green® PP-R - Salient and unique features that set Supreme Indo Green® apart from other brands available in the market are - • Quality conformity with European and international standards. • Manufactured from PP-R type-3, supplied by reputed European suppliers that have Bodycote (an independent international testing body) certification. Indigenously manufactured a complete range of pipes and fittings from 20 to 160 mm diameter with necessary heating tools and accessories. • Availability of fittings in "PN 20" pressure class. • Long-lasting - minimum 50 years of trouble-free performance.
+	      </module>
+            </union>
+        </module>
+      </user>
+      Using the above knowledge, create a question for knowledge testing from the content given above. Then write 4 possible answer options.  Only one of the options in the question must follow from the content, the rest of the answers must be wrong but very plausible. The question should cover a wide range of topics in the content above. Then indicate the correct answer with proper reasoning.
+      <assistant>
+	I will now create a question for you and indicate the right answer with proper reasoning!
+      </assistant>
+</schema>

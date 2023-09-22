@@ -22,9 +22,9 @@ def main():
         FormatLlama2Conversation()
     ]
 
-    use_cache = True
+    use_cache = False
 
-    cache_engine.add_schema(read_file("./benchmark/schema_industrial.xml", preproc))
+    cache_engine.add_schema(read_file("./benchmark/squadv2test.xml", preproc))
 
     parameter = GenerationParameters(
         temperature=0.0,
@@ -36,24 +36,30 @@ def main():
     )
 
     prompt_text = """
-    <prompt schema='industrial'>
-        <okuma>
-            <chunk0/>
-        </okuma>
+    <prompt schema='squadv2'>
+        <contexts>
+            <document0/>
+            <document1/>
+            <document2/>
+            <document3/>
+            <document4/>
+            <document5/>
+            <document6/>
+        </contexts>
     """
 
     # text chat interface
     while True:
-        #try:
-        #    inp = input("User: ")
-        #except EOFError:
-        #    inp = ""
+        try:
+           inp = input("User: ")
+        except EOFError:
+           inp = ""
 
-        #if inp == "exit" or not inp:
-        #    print("Terminating...")
-        #    break
+        if inp == "exit" or not inp:
+           print("Terminating...")
+           break
 
-        #prompt_text += f"<user>{inp}</user>"
+        prompt_text += f"<user>{inp}</user>"
 
         prompt = Prompt(prompt_text + "</prompt>", preproc)
 
