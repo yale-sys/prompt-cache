@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from typing import Optional, Generator, List
 
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, LlamaForCausalLM, LlamaTokenizer
 
 from promptcache.cache_engine import KVCache
 
@@ -15,6 +14,8 @@ from transformers.generation.logits_process import (
     TopKLogitsWarper,
     TopPLogitsWarper,
 )
+
+from promptcache.model import LanguageModel
 
 
 @dataclass
@@ -48,12 +49,10 @@ class Output:
 
 
 class GenerationEngine:
-    model: LlamaForCausalLM
-    tokenizer: LlamaTokenizer
+    lm: LanguageModel
 
-    def __init__(self, model: LlamaForCausalLM, tokenizer: LlamaTokenizer):
-        self.model = model
-        self.tokenizer = tokenizer
+    def __init__(self, lm: LanguageModel):
+        self.lm = lm
 
     @torch.inference_mode()
     def generate(self,
@@ -67,7 +66,7 @@ class GenerationEngine:
         output_ids = list(token_ids)
         new_output_ids = list()
 
-        device = self.model.device
+        device = self.lm.device
 
         position_offset = max(position_ids) + 1
 
@@ -96,10 +95,10 @@ class GenerationEngine:
                 end = torch.cuda.Event(enable_timing=True)
 
                 start.record()
-                out = self.model(input_ids=input_ids,
-                                 position_ids=position_ids,
-                                 past_key_values=cache,
-                                 use_cache=use_cache)
+                out = self.lm(input_ids=input_ids,
+                              position_ids=position_ids,
+                              past_key_values=cache,
+                              use_cache=use_cache)
                 end.record()
                 torch.cuda.synchronize()
                 inference_time += start.elapsed_time(end)
@@ -115,10 +114,10 @@ class GenerationEngine:
                 input_ids = torch.tensor([[new_token_id]], device=device, dtype=torch.long)
                 position_ids = torch.tensor([[position_offset + i]], device=device, dtype=torch.long)
                 t1 = time.time()
-                out = self.model(input_ids=input_ids,
-                                 position_ids=position_ids,
-                                 past_key_values=past_key_values,
-                                 use_cache=True)
+                out = self.lm(input_ids=input_ids,
+                              position_ids=position_ids,
+                              past_key_values=past_key_values,
+                              use_cache=True)
                 inference_time += time.time() - t1
 
                 logits = out.logits
@@ -146,16 +145,8 @@ class GenerationEngine:
                 stopped = False
 
             if i % stream_interval == 0 or i == params.max_new_tokens - 1 or stopped:
-                output = self.tokenizer.decode(
-                    output_ids,
-                    skip_special_tokens=True,
-                    spaces_between_special_tokens=False,
-                )
-                new_output = self.tokenizer.decode(
-                    new_output_ids,
-                    skip_special_tokens=True,
-                    spaces_between_special_tokens=False,
-                )
+                output = self.lm.decode(output_ids)
+                new_output = self.lm.decode(new_output_ids)
                 yield Output(output, new_output, inference_time)
 
             if stopped:

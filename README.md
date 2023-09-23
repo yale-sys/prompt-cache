@@ -14,6 +14,7 @@ Modular and structured prompt caching for low-latency LLM inference
 - [ ] Conditional cache (layer 2 / layer 3)
 - [ ] Cache compression
 - [ ] Pipelined generation
+- [ ] Faster caching time
 
 ### Setup
 

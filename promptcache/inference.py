@@ -8,7 +8,6 @@ import warnings
 
 from conversation import Conversation, SeparatorStyle, llama2_template
 
-import psutil
 import torch
 from transformers import (
     AutoTokenizer,

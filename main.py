@@ -1,48 +1,37 @@
 import torch.cuda
 
+from promptcache.model import Llama2
 from transformers import (
     AutoTokenizer, LlamaForCausalLM, LlamaTokenizer,
 
 )
 
-from promptcache import Prompt, CompactSpaces, FormatLlama2Conversation, read_file, CacheEngine, \
+from promptcache import Prompt, CompactSpaces, read_file, CacheEngine, \
     GenerationEngine, GenerationParameters, llama2_template
 
 
 def main():
     ### Configurations ###
-    model_path = "meta-llama/Llama-2-7b-chat-hf"
 
-    models = [
-        "BAAI/AquilaChat-7B",
-        "baichuan-inc/Baichuan2-7B-Chat",
-        "bigscience/bloomz",
-        "tiiuae/falcon-7b",
-        "gpt2",
-        "bigcode/starcoder",
-        "EleutherAI/gpt-j-6b",
-        "databricks/dolly-v2-12b",
-        "internlm/internlm-chat-7b",
-        "mosaicml/mpt-7b",
-        "Qwen/Qwen-7B-Chat"
-
-    ]
-
-    disable_cuda = True
-    disable_prompt_cache = True
+    disable_cuda = False
+    disable_prompt_cache = False
 
     ######################
 
-    tokenizer = LlamaTokenizer.from_pretrained(model_path)
-    model = LlamaForCausalLM.from_pretrained(model_path,
-                                             load_in_8bit=True if not disable_cuda else False,
-                                             device_map="auto" if not disable_cuda else None)
-    cache_engine = CacheEngine(2500, model, tokenizer)
-    gen_engine = GenerationEngine(model, tokenizer)
+    lm = Llama2("meta-llama/Llama-2-13b-chat-hf",
+                load_in_8bit=True if not disable_cuda else False,
+                device_map="auto" if not disable_cuda else None)
+
+    # tokenizer = LlamaTokenizer.from_pretrained(model_path)
+    # model = LlamaForCausalLM.from_pretrained(model_path,
+    #                                          load_in_8bit=True if not disable_cuda else False,
+    #                                          device_map="auto" if not disable_cuda else None)
+    cache_engine = CacheEngine(2500, lm)
+    gen_engine = GenerationEngine(lm)
 
     preproc = [
         CompactSpaces(),
-        FormatLlama2Conversation()
+        lm.get_formatter()
     ]
     # 14649
     # 16869
@@ -50,7 +39,7 @@ def main():
     # print(f'Mem: {torch.cuda.memory_allocated(0) / (1e6):.2f} MB')
 
     # cache_engine.add_schema(read_file("./benchmark/schema_mbti.xml", preproc))
-    cache_engine.add_schema(read_file("./benchmark/schema_persona_long.xml", preproc), skip_computation=True)
+    cache_engine.add_schema(read_file("./benchmark/schema_persona_long.xml", preproc))
 
     # torch.cuda.synchronize()
     # print(f'Mem: {torch.cuda.memory_allocated(0) / (1e6):.2f} MB')
@@ -61,7 +50,7 @@ def main():
         top_p=0.95,
         top_k=-1,
         max_new_tokens=512,
-        stop_token_ids=[tokenizer.eos_token_id],
+        stop_token_ids=[lm.eos_token_id],
     )
 
     # prompt_text = "<prompt schema='mbti'> <E/><N/><T/><P/>"

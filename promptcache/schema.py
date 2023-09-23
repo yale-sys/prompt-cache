@@ -7,13 +7,9 @@ import re
 import lxml
 import lxml.etree
 
-from typing import List, Union, Dict, cast, Tuple, Any, Optional
+from typing import List, Union, cast, Any, Optional
 
-from transformers import (
-    LlamaTokenizer,
-
-)
-
+from .model import LanguageModel
 from .prompt import compact_surrounding_spaces
 
 
@@ -29,29 +25,6 @@ def is_valid_xml_element_name(name: str) -> bool:
 
 def repr_indent(obj: Any, indent: int = 1) -> str:
     return '\n'.join([indent * '\t' + s for s in repr(obj).split('\n')])
-
-
-# Wrapper around LlamaTokenizer
-class Tokenizer:
-
-    def __init__(self, hf_tokenizer: LlamaTokenizer):
-        self.hf_tokenizer = hf_tokenizer
-
-    def encode(self, text: str) -> List[int]:
-        # Warning: this is a hack to remove bos_token
-        token_ids = self.hf_tokenizer.encode(text, add_special_tokens=False)
-        return token_ids
-
-    def decode(self, token_ids: List[int]) -> str:
-        return self.hf_tokenizer.decode(token_ids, skip_special_tokens=False)
-
-    @property
-    def unk_token(self) -> str:
-        return self.hf_tokenizer.unk_token
-
-    @property
-    def unk_token_id(self) -> int:
-        return self.hf_tokenizer.unk_token_id
 
 
 class Path:
@@ -131,13 +104,13 @@ class Parameter(Element):
     def __init__(self,
                  offset: int,
                  spec: lxml.etree.Element,
-                 tokenizer: Tokenizer):
+                 lm: LanguageModel):
         super().__init__(offset)
 
-        self.placeholder_token = tokenizer.unk_token_id
-        self._process(spec, tokenizer)
+        self.placeholder_token = lm.unk_token_id
+        self._process(spec, lm)
 
-    def _process(self, root: lxml.etree.Element, tokenizer: Tokenizer):
+    def _process(self, root: lxml.etree.Element, lm: LanguageModel):
 
         assert root.tag == "parameter"
 
@@ -158,7 +131,7 @@ class Parameter(Element):
 
         if "scaffold" in root.attrib:
 
-            self._token_ids = tokenizer.encode(root.attrib["scaffold"])
+            self._token_ids = lm.encode(root.attrib["scaffold"])
 
             if len(self._token_ids) > self.length:
                 raise ValueError(f'Scaffold for parameter {self.name} is too long')
@@ -183,11 +156,11 @@ class TokenSequence(Element):
     _token_ids: List[int]
     _position_ids: List[int]
 
-    def __init__(self, offset: int, text: str, tokenizer: Tokenizer):
+    def __init__(self, offset: int, text: str, lm: LanguageModel):
         super().__init__(offset)
 
         self.text = text
-        self._token_ids = tokenizer.encode(text)
+        self._token_ids = lm.encode(text)
         self._position_ids = list(range(self.offset, self.offset + len(self._token_ids)))
 
     def __len__(self) -> int:
@@ -208,16 +181,16 @@ class UnionModule(Element):
     length: int
     scaffold_name: str
 
-    def __init__(self, offset, spec: lxml.etree.Element, tokenizer: Tokenizer):
+    def __init__(self, offset, spec: lxml.etree.Element, lm: LanguageModel):
 
         super().__init__(offset)
 
         self.modules = []
         self.length = 0
 
-        self._process(spec, tokenizer)
+        self._process(spec, lm)
 
-    def _process(self, root: lxml.etree.Element, tokenizer: Tokenizer):
+    def _process(self, root: lxml.etree.Element, lm: LanguageModel):
 
         assert root.tag == "union"
 
@@ -227,7 +200,7 @@ class UnionModule(Element):
             if e.tag != "module":
                 raise ValueError("Only <module> tags are allowed in union")
 
-            module = Module(self.offset, e, tokenizer)
+            module = Module(self.offset, e, lm)
             self.modules.append(module)
             max_len = max(max_len, len(module))
 
@@ -289,7 +262,7 @@ class Module(Element):
     def __init__(self,
                  offset: int,
                  spec: Union[str, lxml.etree.Element],
-                 tokenizer: Tokenizer,
+                 lm: LanguageModel,
                  is_root: bool = False):
 
         super().__init__(offset)
@@ -304,9 +277,9 @@ class Module(Element):
             parser = lxml.etree.XMLParser(recover=True)
             spec = lxml.etree.fromstring(spec, parser=parser)
 
-        self._process(spec, tokenizer)
+        self._process(spec, lm)
 
-    def _process(self, root: lxml.etree.Element, tokenizer: Tokenizer):
+    def _process(self, root: lxml.etree.Element, lm: LanguageModel):
 
         if self._is_root:
             assert root.tag == "schema"
@@ -331,14 +304,14 @@ class Module(Element):
         if root.text is not None:
             text = compact_surrounding_spaces(root.text)
             if len(text) > 0:
-                seq = TokenSequence(offset, text, tokenizer)
+                seq = TokenSequence(offset, text, lm)
                 self.children.append(seq)
                 offset += len(seq)
 
         for e in root:
             match e.tag:
                 case "module":
-                    m = Module(offset, e, tokenizer)
+                    m = Module(offset, e, lm)
                     self._contains_union = self._contains_union or m._contains_union
 
                     # check namespace conflicts
@@ -347,7 +320,7 @@ class Module(Element):
                         raise ValueError(f"Module {m.name} is already defined")
 
                 case "union":
-                    m = UnionModule(offset, e, tokenizer)
+                    m = UnionModule(offset, e, lm)
                     self._contains_union = True
                     submodule_names = [c.name for c in self.modules()]
                     for c in m.modules:
@@ -358,14 +331,14 @@ class Module(Element):
                     if self._is_root:
                         raise ValueError("Parameters are not allowed in schema")
 
-                    m = Parameter(offset, e, tokenizer)
+                    m = Parameter(offset, e, lm)
 
                     parameter_names = [c.name for c in self.parameters()]
                     if m.name in parameter_names:
                         raise ValueError(f"Parameter {m.name} is already defined")
 
                 case _:
-                    m = TokenSequence(offset, lxml.etree.tostring(e), tokenizer)
+                    m = TokenSequence(offset, lxml.etree.tostring(e), lm)
 
             self.children.append(m)
             offset += len(m)
@@ -374,7 +347,7 @@ class Module(Element):
             if e.tail is not None:
                 text = compact_surrounding_spaces(e.tail)
                 if len(text) > 0:
-                    seq = TokenSequence(offset, text, tokenizer)
+                    seq = TokenSequence(offset, text, lm)
                     self.children.append(seq)
                     offset += len(seq)
 
@@ -532,9 +505,9 @@ class Scaffold(Element):
 
 # Schema is a root module that cannot contain parameters
 class Schema(Module):
-    tokenizer: Tokenizer
+    lm: LanguageModel
 
-    def __init__(self, spec: Union[str, lxml.etree.Element], tokenizer: Tokenizer):
-        super().__init__(0, spec, tokenizer, is_root=True)
+    def __init__(self, spec: Union[str, lxml.etree.Element], lm: LanguageModel):
+        super().__init__(0, spec, lm, is_root=True)
 
-        self.tokenizer = tokenizer
+        self.lm = lm

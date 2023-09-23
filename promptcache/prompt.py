@@ -70,48 +70,6 @@ class CompactSpaces(Preprocessor):
             return compact_spaces(prompt)
 
 
-class FormatConversation(Preprocessor):
-    system: (str, str, str)
-    user: (str, str)
-    assistant: (str, str)
-
-    def __init__(self, system: (str, str, str), user: (str, str), assistant: (str, str)):
-        super().__init__()
-
-        self.system = (escape_xml(system[0]), escape_xml(system[1]), escape_xml(system[2]))
-        self.user = (escape_xml(user[0]), escape_xml(user[1]))
-        self.assistant = (escape_xml(assistant[0]), escape_xml(assistant[1]))
-
-    def __call__(self, prompt: str) -> str:
-        replacement_pairs = [
-            ("<system>", self.system[0]),
-            ("</system>", self.system[1]),
-            ("<system/>", self.system[2]),
-            ("<user>", self.user[0]),
-            ("</user>", self.user[1]),
-            ("<assistant>", self.assistant[0]),
-            ("</assistant>", self.assistant[1])
-        ]
-
-        # remove space before <system>
-        prompt = re.sub(r' +<system>', '<system>', prompt)
-
-        for old, new in replacement_pairs:
-            prompt = prompt.replace(old, new)
-
-        return prompt
-
-
-class FormatLlama2Conversation(FormatConversation):
-
-    def __init__(self):
-        super().__init__(
-            system=("<s>[INST] <<SYS>>\n", "<</SYS>>\n\n", "<s>[INST]"),
-            user=(" ", "[/INST]"),
-            assistant=(" ", "</s><s>[INST]")
-        )
-
-
 class ModuleRef:
     """This class is used to represent a module reference in the prompt."""
     name: str

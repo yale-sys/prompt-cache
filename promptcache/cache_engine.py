@@ -1,19 +1,14 @@
 import gc
 
-import lxml
-import lxml.etree
-from typing import List, Tuple, Union, Dict, cast, Optional
+from typing import List, Tuple, Union, Dict, Optional
 from tqdm import tqdm
 import itertools
 
 import torch
-from transformers import (
-    LlamaTokenizer,
-    LlamaForCausalLM
-)
 
-from .prompt import Preprocessor, Prompt, ModuleRef
-from .schema import Parameter, TokenSequence, UnionModule, Schema, Tokenizer, Path, Module
+from .model import LanguageModel
+from .prompt import Prompt, ModuleRef
+from .schema import Parameter, TokenSequence, UnionModule, Schema, Path, Module
 
 # list - each decoding layer in transformer
 KVCache = List[Tuple[torch.Tensor, torch.Tensor]]
@@ -157,11 +152,11 @@ class SchemaCache:
     cache_l1: Dict[int, TokenSequenceCache]
     cache_l2: Dict[Tuple[int, int], Tuple[TokenSequenceCache, TokenSequenceCache]]
 
-    model: LlamaForCausalLM
+    lm: LanguageModel
 
-    def __init__(self, schema: Schema, model: LlamaForCausalLM, skip_computation: bool = False):
+    def __init__(self, schema: Schema, lm: LanguageModel, skip_computation: bool = False):
         self.schema = schema
-        self.model = model
+        self.lm = lm
         self.cache_l1 = dict()
         self.cache_l2 = dict()
 
@@ -169,7 +164,7 @@ class SchemaCache:
             self._process()
 
     @torch.inference_mode()
-    def _process(self, skip_computation: bool = False):
+    def _process(self):
 
         # Get all possible L1 scaffolds
         stack = list()
@@ -211,9 +206,9 @@ class SchemaCache:
             # replace modeling_llama.py line 334
             #         cos, sin = self.rotary_emb(value_states, seq_len=torch.max(position_ids) + 1)
 
-            d_output = self.model(
-                input_ids=torch.tensor([token_ids], device=self.model.device, dtype=torch.long),
-                position_ids=torch.tensor([position_ids], device=self.model.device, dtype=torch.long),
+            d_output = self.lm(
+                input_ids=torch.tensor([token_ids], device=self.lm.device, dtype=torch.long),
+                position_ids=torch.tensor([position_ids], device=self.lm.device, dtype=torch.long),
             )
 
             # print(d_output.past_key_values[0].shape)
@@ -234,7 +229,7 @@ class SchemaCache:
                 ed = st + length
 
                 # it is already on the cpu.
-                if self.model.device.type == 'cpu':
+                if self.lm.device.type == 'cpu':
                     tc_cache = [(kv_cache[i][0][:, :, st:ed, :].squeeze(0).detach(),
                                  kv_cache[i][1][:, :, st:ed, :].squeeze(0).detach())
                                 for i in range(len(kv_cache))]
@@ -245,7 +240,7 @@ class SchemaCache:
 
                 self.cache_l1[id(tc)] = TokenSequenceCache(tc, tc_cache)
 
-            if self.model.device.type != 'cpu':
+            if self.lm.device.type != 'cpu':
                 del d_output
 
         gc.collect()
@@ -274,34 +269,32 @@ class SchemaCache:
 
 
 class CacheEngine:
-    model: LlamaForCausalLM
-    tokenizer: Tokenizer
+    lm: LanguageModel
     schemas: Dict[str, SchemaCache]
 
     prompt_cache: PromptCache
 
-    def __init__(self, max_ctx_length: int, model: LlamaForCausalLM, tokenizer: LlamaTokenizer):
+    def __init__(self, max_ctx_length: int, lm: LanguageModel):
 
-        self.model = model
-        self.tokenizer = Tokenizer(tokenizer)
+        self.lm = lm
         self.schemas = dict()
 
         self.prompt_cache = PromptCache(
             max_ctx_length=max_ctx_length,
-            num_layers=model.config.num_hidden_layers,
-            num_head=model.config.num_attention_heads,
-            head_dim=model.config.hidden_size // model.config.num_attention_heads,
-            device=model.device
+            num_layers=lm.config.num_hidden_layers,
+            num_head=lm.config.num_attention_heads,
+            head_dim=lm.config.hidden_size // lm.config.num_attention_heads,
+            device=lm.device
         )
 
     def add_schema(self, schema: Union[str, Schema], skip_computation: bool = False):
         if type(schema) == str:
-            schema = Schema(schema, self.tokenizer)
+            schema = Schema(schema, self.lm)
 
         if schema.name in self.schemas:
             raise ValueError(f'There is already a schema named {schema.name} in the cache')
 
-        self.schemas[schema.name] = SchemaCache(schema, self.model, skip_computation)
+        self.schemas[schema.name] = SchemaCache(schema, self.lm, skip_computation)
 
     def get_schema(self, name: str) -> Optional[Schema]:
         if name not in self.schemas:
@@ -357,7 +350,7 @@ class CacheEngine:
                 if parameter is None:
                     raise ValueError(f'There is no such parameter named {arg.name} in the module {module.name}')
 
-                argument_ids = self.tokenizer.encode(arg.value)
+                argument_ids = self.lm.encode(arg.value)
 
                 if len(argument_ids) > parameter.length:
                     raise ValueError(
@@ -377,7 +370,7 @@ class CacheEngine:
                 stack.append((m, submodule))
 
         # add trailing text
-        text_token_ids = self.tokenizer.encode(prompt.text)
+        text_token_ids = self.lm.encode(prompt.text)
         text_position_ids = list(range(len(schema), len(schema) + len(text_token_ids)))
 
         argument_ids_list.append(text_token_ids)
