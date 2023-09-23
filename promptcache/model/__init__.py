@@ -1,5 +1,5 @@
 import abc
-from typing import Callable, List
+from typing import Callable, List, Optional
 import torch
 import re
 
@@ -88,11 +88,14 @@ class LanguageModel(abc.ABC):
     name: str
     hf_tokenizer: PreTrainedTokenizer
     hf_model: PreTrainedModel
+    stop_token_ids: List[int]
 
-    def __init__(self, name: str, model: PreTrainedModel, tokenizer: PreTrainedTokenizer):
+    def __init__(self, name: str, model: PreTrainedModel, tokenizer: PreTrainedTokenizer,
+                 stop_token_ids: Optional[List[int]] = None):
         self.name = name
         self.hf_tokenizer = tokenizer
         self.hf_model = model
+        self.stop_token_ids = stop_token_ids if stop_token_ids is not None else [self.eos_token_id]
 
     @abc.abstractmethod
     def get_formatter(self) -> Callable[[str], str]:
@@ -145,7 +148,7 @@ class Llama2(LanguageModel):
             user=(" ", "[/INST]"),
             assistant=(" ", "</s><s>[INST]"))
 
-        super().__init__(name, model, tokenizer)
+        super().__init__(name, model, tokenizer, [tokenizer.eos_token_id])
 
     def get_formatter(self) -> Callable[[str], str]:
         return self.formatter

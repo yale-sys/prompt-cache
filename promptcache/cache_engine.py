@@ -88,12 +88,13 @@ class PromptCache:
         self.max_ctx_length = max_ctx_length
         self.num_head = num_head
         self.head_dim = head_dim
+
         self.device_cache = [
             (torch.empty(num_head, max_ctx_length, head_dim, device=device, dtype=torch.half),  # key
              torch.empty(num_head, max_ctx_length, head_dim, device=device, dtype=torch.half)) for _ in
             range(num_layers)]
 
-        print(num_head, max_ctx_length, head_dim)
+        #print(num_head, max_ctx_length, head_dim)
 
         # stores staged modules
         self.staged = []
@@ -215,6 +216,11 @@ class SchemaCache:
             # print(d_output.past_key_values[1].shape)
 
             kv_cache = d_output.past_key_values
+
+            # print('num_layers', len(kv_cache))
+            # print('k_shape', kv_cache[0][0].shape)
+            # print('v_shape', kv_cache[0][1].shape)
+
             # iterate through all leaf nodes in target scaffold
             target = scaffold.select(path)
 
@@ -279,10 +285,14 @@ class CacheEngine:
         self.lm = lm
         self.schemas = dict()
 
+        num_head = lm.config.num_attention_heads
+        if 'falcon' in lm.name:
+            num_head = 1
+
         self.prompt_cache = PromptCache(
             max_ctx_length=max_ctx_length,
             num_layers=lm.config.num_hidden_layers,
-            num_head=lm.config.num_attention_heads,
+            num_head=num_head,
             head_dim=lm.config.hidden_size // lm.config.num_attention_heads,
             device=lm.device
         )

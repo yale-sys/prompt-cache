@@ -18,7 +18,11 @@ Modular and structured prompt caching for low-latency LLM inference
 
 ### Setup
 
-Current inference engine is based on [llama2](https://huggingface.co/meta-llama/Llama-2-7b-chat-hf) model hosted on HF.
+Current inference engine supports.
+
+- Llama2
+- Falcon
+
 Make sure that you
 have access to it. You may use other LLMs, but you need to modify the chat preprocessor.
 
@@ -42,6 +46,7 @@ Then, run the following command (inside cloned `transformers` repo)
 
 ```bash
 sed -i 's/cos, sin = self.rotary_emb(value_states, seq_len=kv_seq_len)/cos, sin = self.rotary_emb(value_states, seq_len=torch.max(position_ids) + 1)/' src/transformers/models/llama/modeling_llama.py
+sed -i 's/past_kv_length = 0 if layer_past is None else layer_past[0].shape[1]/past_kv_length = torch.max(position_ids) + 1/' src/transformers/models/falcon/modeling_falcon.py
 ```
 
 to
@@ -53,6 +58,18 @@ as follows
 > # to this
 > cos, sin = self.rotary_emb(value_states, seq_len=torch.max(position_ids) + 1)
 > ```
+
+to
+modify `src/transformers/models/falcon/modeling_falcon.py` [L448](https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/modeling_llama.py#L332)
+as follows
+> ```python
+> # from this
+> past_kv_length = 0 if layer_past is None else layer_past[0].shape[1]
+> # to this
+> past_kv_length = torch.max(position_ids) + 1
+> ```
+
+
 This is to support positional embedding on sparse position ids. This hack will be later replaced by a PR to the
 upstream.
 

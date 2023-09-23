@@ -1,6 +1,6 @@
 import torch.cuda
 
-from promptcache.model import Llama2
+from promptcache.model import Llama2, Falcon
 from transformers import (
     AutoTokenizer, LlamaForCausalLM, LlamaTokenizer,
 
@@ -18,7 +18,11 @@ def main():
 
     ######################
 
-    lm = Llama2("meta-llama/Llama-2-13b-chat-hf",
+    # lm = Llama2("meta-llama/Llama-2-13b-chat-hf",
+    #             load_in_8bit=True if not disable_cuda else False,
+    #             device_map="auto" if not disable_cuda else None)
+
+    lm = Falcon("tiiuae/falcon-7b-instruct",
                 load_in_8bit=True if not disable_cuda else False,
                 device_map="auto" if not disable_cuda else None)
 
