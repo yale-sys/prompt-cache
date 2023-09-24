@@ -35,6 +35,18 @@ def pad_unk(position_ids: List[int], token_ids: List[int], unk_token_id: int):
     return padded_position_ids, padded_token_ids
 
 
+def pad_batch(batch_list: List[List[int]], pad_id: int) -> Tuple[List[List[int]], List[List[int]]]:
+    max_len = max(map(len, batch_list))
+
+    padded_batch = []
+    mask_batch = []
+    for batch in batch_list:
+        padded_batch.append(batch + [pad_id] * (max_len - len(batch)))
+        mask_batch.append([1] * len(batch) + [0] * (max_len - len(batch)))
+
+    return padded_batch, mask_batch
+
+
 class TokenSequenceCache:
     token_sequence: TokenSequence
     host_cache: KVCache
@@ -160,17 +172,16 @@ class SchemaCache:
 
     lm: LanguageModel
 
-    def __init__(self, schema: Schema, lm: LanguageModel, skip_computation: bool = False):
+    def __init__(self, schema: Schema, lm: LanguageModel, batch_size: int = 1):
         self.schema = schema
         self.lm = lm
         self.cache_l1 = dict()
         self.cache_l2 = dict()
 
-        if not skip_computation:
-            self._process()
+        self._process(batch_size)
 
     @torch.inference_mode()
-    def _process(self):
+    def _process(self, batch_size: int = 1):
 
         # Get all possible L1 scaffolds
         stack = list()
@@ -197,79 +208,97 @@ class SchemaCache:
                             paths_l1.append(Path(path + [u.name, n.name]).next)
 
         # For each path, update every leaf nodes (token sequence) under that path
-        for path in paths_l1:
+
+        batch_path = []
+        batch_token_ids = []
+        batch_position_ids = []
+        for k in range(len(paths_l1)):
+
+            path = paths_l1[k]
 
             scaffold = self.schema.get_scaffold(path)
 
             token_ids = scaffold.token_ids()
             position_ids = scaffold.position_ids()
 
-            # position_ids, token_ids = pad_unk(position_ids, token_ids, self.schema.tokenizer.hf_tokenizer.eos_token_id)
-            # print(token_ids)
+            # add to batch
+            batch_path.append((path, scaffold))
+            batch_token_ids.append(token_ids)
+            batch_position_ids.append(position_ids)
 
-            print(f"Caching module @{self.schema.name}/{path} ({len(token_ids)} tokens)...")
+            # batch bucket filled or the last iteration
+            if len(batch_token_ids) == batch_size or k == len(paths_l1) - 1:
 
-            # replace modeling_llama.py line 334
-            #         cos, sin = self.rotary_emb(value_states, seq_len=torch.max(position_ids) + 1)
+                # position_ids, token_ids = pad_unk(position_ids, token_ids, self.schema.tokenizer.hf_tokenizer.eos_token_id)
+                # print(token_ids)
 
-            d_output = self.lm(
-                input_ids=torch.tensor([token_ids], device=self.lm.device, dtype=torch.long),
-                position_ids=torch.tensor([position_ids], device=self.lm.device, dtype=torch.long),
-                use_cache=True
-            )
+                # replace modeling_llama.py line 334
+                #         cos, sin = self.rotary_emb(value_states, seq_len=torch.max(position_ids) + 1)
 
-            # print(d_output.past_key_values[0].shape)
-            # print(d_output.past_key_values[1].shape)
+                batch_token_ids_padded, attn_mask = pad_batch(batch_token_ids, self.lm.eos_token_id)
+                batch_position_ids_padded, _ = pad_batch(batch_position_ids, 0)
 
-            kv_cache = d_output.past_key_values
+                d_output = self.lm(
+                    input_ids=torch.tensor(batch_token_ids_padded, device=self.lm.device, dtype=torch.long),
+                    position_ids=torch.tensor(batch_position_ids_padded, device=self.lm.device, dtype=torch.long),
+                    attention_mask=torch.tensor(attn_mask, device=self.lm.device, dtype=torch.float16),
+                    use_cache=True
+                )
 
-            # print('num_layers', len(kv_cache))
-            # print('k_shape', kv_cache[0][0].shape)
-            # print('v_shape', kv_cache[0][1].shape)
+                # print(d_output.past_key_values[0].shape)
+                # print(d_output.past_key_values[1].shape)
 
-            # iterate through all leaf nodes in target scaffold
-            target = scaffold.select(path)
+                kv_cache = d_output.past_key_values
 
-            for tc in target.all_token_sequences():
-                offset = tc.offset
-                length = len(tc)
+                # print('num_layers', len(kv_cache))
+                # print('k_shape', kv_cache[0][0].shape)
+                # print('v_shape', kv_cache[0][1].shape)
 
-                # why not just use tc.offset?
-                # this is because the offset is not always the same as the position_ids
-                # they might be mixed up. (but each token sequence is guaranteed to be continuous)
-                st = position_ids.index(offset)
-                ed = st + length
+                # iterate through all leaf nodes in target scaffold
 
-                tc_cache = []
+                for j in range(len(batch_path)):
 
-                for i in range(len(kv_cache)):
-                    k_cache = self.lm.store_k_hook(kv_cache[i][0])
-                    v_cache = self.lm.store_v_hook(kv_cache[i][1])
+                    path, scaffold = batch_path[j]
+                    position_ids = batch_position_ids[j]
 
-                    k_cache_tc = k_cache[:, :, st:ed, :].squeeze(0).detach()
-                    v_cache_tc = v_cache[:, :, st:ed, :].squeeze(0).detach()
+                    print(f"Caching module @{self.schema.name}/{path} ({len(position_ids)} tokens)...")
 
-                    if self.lm.device.type != 'cpu':
-                        k_cache_tc = k_cache_tc.cpu()
-                        v_cache_tc = v_cache_tc.cpu()
+                    target = scaffold.select(path)
 
-                    tc_cache.append((k_cache_tc, v_cache_tc))
+                    for tc in target.all_token_sequences():
+                        offset = tc.offset
+                        length = len(tc)
 
-                #
-                # # it is already on the cpu.
-                # if self.lm.device.type == 'cpu':
-                #     tc_cache = [(kv_cache[i][0][:, :, st:ed, :].squeeze(0).detach(),
-                #                  kv_cache[i][1][:, :, st:ed, :].squeeze(0).detach())
-                #                 for i in range(len(kv_cache))]
-                # else:
-                #     tc_cache = [(kv_cache[i][0][:, :, st:ed, :].squeeze(0).detach().cpu(),
-                #                  kv_cache[i][1][:, :, st:ed, :].squeeze(0).detach().cpu())
-                #                 for i in range(len(kv_cache))]
+                        # why not just use tc.offset?
+                        # this is because the offset is not always the same as the position_ids
+                        # they might be mixed up. (but each token sequence is guaranteed to be continuous)
+                        st = position_ids.index(offset)
+                        ed = st + length
 
-                self.cache_l1[id(tc)] = TokenSequenceCache(tc, tc_cache)
+                        tc_cache = []
 
-            if self.lm.device.type != 'cpu':
-                del d_output
+                        for k in range(len(kv_cache)):
+                            k_cache = self.lm.store_k_hook(kv_cache[k][0])
+                            v_cache = self.lm.store_v_hook(kv_cache[k][1])
+
+                            k_cache_tc = k_cache[j, :, st:ed, :].squeeze(0).detach()
+                            v_cache_tc = v_cache[j, :, st:ed, :].squeeze(0).detach()
+
+                            if self.lm.device.type != 'cpu':
+                                k_cache_tc = k_cache_tc.cpu()
+                                v_cache_tc = v_cache_tc.cpu()
+
+                            tc_cache.append((k_cache_tc, v_cache_tc))
+
+                        self.cache_l1[id(tc)] = TokenSequenceCache(tc, tc_cache)
+
+                if self.lm.device.type != 'cpu':
+                    del d_output
+
+                # clear batch
+                batch_path = []
+                batch_token_ids = []
+                batch_position_ids = []
 
         gc.collect()
         torch.cuda.empty_cache()
@@ -317,14 +346,14 @@ class CacheEngine:
             device=lm.device
         )
 
-    def add_schema(self, schema: Union[str, Schema], skip_computation: bool = False):
+    def add_schema(self, schema: Union[str, Schema], batch_size: int = 1):
         if type(schema) == str:
             schema = Schema(schema, self.lm)
 
         if schema.name in self.schemas:
             raise ValueError(f'There is already a schema named {schema.name} in the cache')
 
-        self.schemas[schema.name] = SchemaCache(schema, self.lm, skip_computation)
+        self.schemas[schema.name] = SchemaCache(schema, self.lm, batch_size)
 
     def get_schema(self, name: str) -> Optional[Schema]:
         if name not in self.schemas:

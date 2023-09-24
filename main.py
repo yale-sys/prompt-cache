@@ -18,13 +18,13 @@ def main():
 
     ######################
 
-    # lm = Llama2("meta-llama/Llama-2-13b-chat-hf",
-    #             load_in_8bit=True if not disable_cuda else False,
-    #             device_map="auto" if not disable_cuda else None)
-
-    lm = Falcon("tiiuae/falcon-7b-instruct",
+    lm = Llama2("meta-llama/Llama-2-7b-chat-hf",
                 load_in_8bit=True if not disable_cuda else False,
                 device_map="auto" if not disable_cuda else None)
+
+    # lm = Falcon("tiiuae/falcon-7b-instruct",
+    #             load_in_8bit=True if not disable_cuda else False,
+    #             device_map="auto" if not disable_cuda else None)
 
     # lm = Mpt("mosaicml/mpt-7b-chat-8k",
     #          load_in_8bit=True if not disable_cuda else False,
@@ -47,7 +47,7 @@ def main():
     # print(f'Mem: {torch.cuda.memory_allocated(0) / (1e6):.2f} MB')
 
     # cache_engine.add_schema(read_file("./benchmark/schema_mbti.xml", preproc))
-    cache_engine.add_schema(read_file("./benchmark/schema_persona_long.xml", preproc))
+    cache_engine.add_schema(read_file("./benchmark/schema_persona_long.xml", preproc), batch_size=4)
     cache_engine.add_schema(read_file("./benchmark/empty.xml", preproc))
 
     # torch.cuda.synchronize()
@@ -86,9 +86,9 @@ def main():
         </personality>
     """
 
-    # prompt_text = """
-    #     <prompt schema='empty'>
-    #     """
+    prompt_text = """
+        <prompt schema='empty'>
+        """
 
     # text chat interface
     while True:

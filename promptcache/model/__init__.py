@@ -205,7 +205,7 @@ class Falcon(LanguageModel):
         return self.formatter
 
     def get_cache_shape(self) -> Tuple[int, int, int]:
-        head_dim = self.hf_model.config.hidden_size // self.hf_model.config.num_attention_heads,
+        head_dim = self.hf_model.config.hidden_size // self.hf_model.config.num_attention_heads
         return self.hf_model.config.num_hidden_layers, 1, head_dim
 
 
