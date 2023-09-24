@@ -91,6 +91,7 @@ class LanguageModel(abc.ABC):
     hf_model: PreTrainedModel
     stop_token_ids: List[int]
     stop_str: List[str]
+    use_full_position_ids: bool = False
 
     def __init__(self, name: str, model: PreTrainedModel, tokenizer: PreTrainedTokenizer,
                  stop_token_ids: Optional[List[int]] = None, stop_str: Optional[List[str]] = None):
@@ -219,6 +220,7 @@ class Mpt(LanguageModel):
             assistant=("", "<|im_end|>\n"))
 
         self.formatter = conv
+        self.use_full_position_ids = True
 
         stop_token_ids = [50278, 0]
         stop_str = []

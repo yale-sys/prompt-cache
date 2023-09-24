@@ -24,5 +24,6 @@ def build_mpt_alibi_tensor(num_heads, sequence_length, alibi_bias_max=8, device=
     return alibi.squeeze(0)
 
 
-table = build_mpt_alibi_tensor(4, 20) * 100
+table = build_mpt_alibi_tensor(16, 20)
+print(table.shape)
 print(table)

@@ -69,7 +69,8 @@ class GenerationEngine:
                  position_ids: List[int],
                  params: GenerationParameters,
                  cache: Optional[KVCache] = None,
-                 stream_interval: int = 2) -> Generator[Output, None, None]:
+                 stream_interval: int = 2,
+                 use_full_position_ids: bool = False) -> Generator[Output, None, None]:
 
         logits_processor = params.get_logits_processor()
         output_ids = list(token_ids)
@@ -84,6 +85,8 @@ class GenerationEngine:
 
         inference_time = 0.0
 
+        position_ids_og = position_ids
+
         for i in range(params.max_new_tokens):
 
             # initial phase
@@ -91,6 +94,7 @@ class GenerationEngine:
 
                 input_ids = torch.tensor([token_ids], device=device, dtype=torch.long)
                 position_ids = torch.tensor([position_ids], device=device, dtype=torch.long)
+                # print(len(position_ids[0]))
 
                 # add redundant batch dim
                 if cache is not None:
@@ -101,7 +105,7 @@ class GenerationEngine:
 
                 start.record()
                 out = self.lm(input_ids=input_ids,
-                              #position_ids=position_ids,
+                              position_ids=position_ids,
                               past_key_values=cache,
                               use_cache=True)
                 end.record()
@@ -116,10 +120,18 @@ class GenerationEngine:
             else:
                 # upload to the GPU
                 input_ids = torch.tensor([[new_token_id]], device=device, dtype=torch.long)
-                position_ids = torch.tensor([[position_offset + i]], device=device, dtype=torch.long)
+                # position_ids = torch.tensor([[position_offset + i]], device=device, dtype=torch.long)
+
+                if use_full_position_ids:
+
+                    position_ids = torch.tensor([position_ids_og + list(range(position_offset, position_offset + i))],
+                                                device=device, dtype=torch.long)
+
+                else:
+                    position_ids = torch.tensor([[position_offset + i]], device=device, dtype=torch.long)
                 t1 = time.time()
                 out = self.lm(input_ids=input_ids,
-                              #position_ids=position_ids,
+                              position_ids=position_ids,
                               past_key_values=past_key_values,
                               use_cache=True)
                 inference_time += time.time() - t1

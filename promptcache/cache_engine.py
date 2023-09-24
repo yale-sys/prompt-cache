@@ -214,7 +214,7 @@ class SchemaCache:
 
             d_output = self.lm(
                 input_ids=torch.tensor([token_ids], device=self.lm.device, dtype=torch.long),
-                # position_ids=torch.tensor([position_ids], device=self.lm.device, dtype=torch.long),
+                position_ids=torch.tensor([position_ids], device=self.lm.device, dtype=torch.long),
                 use_cache=True
             )
 
@@ -331,7 +331,8 @@ class CacheEngine:
             return None
         return self.schemas[name].schema
 
-    def process(self, prompt: Prompt, no_cache: bool = False) -> Tuple[List[int], List[int], Optional[KVCache]]:
+    def process(self, prompt: Prompt, no_cache: bool = False, return_full_position_ids: bool = False) -> Tuple[
+        List[int], List[int], Optional[KVCache]]:
 
         start = torch.cuda.Event(enable_timing=True)
         end = torch.cuda.Event(enable_timing=True)
@@ -363,7 +364,7 @@ class CacheEngine:
                 # kv_cache_list.append(cached.get_cache_l1(m))
                 used_sequences.append(m)
 
-                if no_cache:
+                if no_cache or return_full_position_ids:
                     orig_ids_list.append(m.token_ids())
                     orig_pos_ids_list.append(m.position_ids())
 
@@ -457,4 +458,9 @@ class CacheEngine:
 
             print(f'Cache overhead: {cache_time:.2f} ms')
 
+            if return_full_position_ids:
+                orig_position_ids = list(itertools.chain(*orig_pos_ids_list))
+                position_ids = orig_position_ids + position_ids
+
+            # print(orig_position_ids)
             return input_ids, position_ids, cache

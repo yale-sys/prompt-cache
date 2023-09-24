@@ -54,6 +54,7 @@ MPT_PRETRAINED_MODEL_ARCHIVE_LIST = [
     # See all MPT models at https://huggingface.co/models?filter=mpt
 ]
 
+
 # Copied from transformers.models.bloom.modeling_bloom._make_causal_mask
 def _make_causal_mask(
         input_ids_shape: torch.Size, device: torch.device, past_key_values_length: int
@@ -131,6 +132,7 @@ class MptAttention(nn.Module):
     def forward(
             self,
             hidden_states: torch.Tensor,
+            position_ids: torch.LongTensor,
             position_bias: torch.Tensor,
             past_key_value: Optional[Tuple[torch.Tensor]] = None,
             attention_mask: Optional[torch.Tensor] = None,
@@ -163,7 +165,12 @@ class MptAttention(nn.Module):
             position_bias_query_index = max(0, position_bias.size(1) - query_length)
             position_bias_key_index = max(0, position_bias.size(2) - key_length)
 
-            position_bias = position_bias[:, position_bias_query_index:, position_bias_key_index:]
+            # print(position_bias_query_index, posi tion_bias_key_index)
+
+            # print(position_ids)
+
+            position_bias = position_bias[:, :, position_ids].transpose(0, 1)
+            # print(position_bias.shape)
 
             attention_scores = attention_scores + position_bias
 
@@ -226,6 +233,7 @@ class MptBlock(nn.Module):
     def forward(
             self,
             hidden_states: torch.Tensor,
+            position_ids: torch.LongTensor,
             position_bias: torch.Tensor,
             attention_mask: torch.Tensor,
             layer_past: Optional[Tuple[torch.Tensor, torch.Tensor]] = None,
@@ -241,6 +249,7 @@ class MptBlock(nn.Module):
         # Self attention.
         attn_outputs, attn_weights, past_key_value = self.attn(
             layernorm_output,
+            position_ids=position_ids,
             position_bias=position_bias,
             attention_mask=attention_mask,
             past_key_value=layer_past,
@@ -454,7 +463,8 @@ class MptModel(MptPreTrainedModel):
     )
     def forward(
             self,
-            input_ids: Optional[torch.LongTensor] = None,
+            input_ids: torch.LongTensor,
+            position_ids: torch.LongTensor,
             past_key_values: Optional[Tuple[Tuple[torch.Tensor, torch.Tensor], ...]] = None,
             attention_mask: Optional[torch.Tensor] = None,
             inputs_embeds: Optional[torch.LongTensor] = None,
@@ -509,7 +519,8 @@ class MptModel(MptPreTrainedModel):
         else:
             attention_mask = attention_mask.to(hidden_states.device)
 
-        alibi = self.build_mpt_alibi_tensor(self.num_heads, self.config.max_seq_len, device=hidden_states.device)
+        max_len = torch.max(position_ids) + 1
+        alibi = self.build_mpt_alibi_tensor(self.num_heads, max_len, device=hidden_states.device)
 
         causal_mask = self._prepare_attn_mask(
             attention_mask,
@@ -533,6 +544,7 @@ class MptModel(MptPreTrainedModel):
                 outputs = torch.utils.checkpoint.checkpoint(
                     create_custom_forward(block),
                     hidden_states,
+                    position_ids,
                     alibi,
                     causal_mask,
                     layer_past,
@@ -540,6 +552,7 @@ class MptModel(MptPreTrainedModel):
             else:
                 outputs = block(
                     hidden_states,
+                    position_ids=position_ids,
                     layer_past=layer_past,
                     attention_mask=causal_mask,
                     use_cache=use_cache,
@@ -631,7 +644,8 @@ class MptForCausalLM(MptPreTrainedModel):
     )
     def forward(
             self,
-            input_ids: Optional[torch.LongTensor] = None,
+            input_ids: torch.LongTensor,
+            position_ids: torch.LongTensor,
             past_key_values: Optional[Tuple[Tuple[torch.Tensor, torch.Tensor], ...]] = None,
             attention_mask: Optional[torch.Tensor] = None,
             inputs_embeds: Optional[torch.Tensor] = None,
@@ -651,6 +665,7 @@ class MptForCausalLM(MptPreTrainedModel):
 
         transformer_outputs = self.transformer(
             input_ids,
+            position_ids=position_ids,
             past_key_values=past_key_values,
             attention_mask=attention_mask,
             inputs_embeds=inputs_embeds,
