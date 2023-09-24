@@ -4,8 +4,9 @@ import torch
 import re
 
 from transformers import AutoTokenizer, AutoModelForCausalLM, LlamaTokenizer, LlamaForCausalLM, PreTrainedTokenizer, \
-    FalconForCausalLM, PretrainedConfig, PreTrainedModel, MptForCausalLM
+    FalconForCausalLM, PretrainedConfig, PreTrainedModel
 
+from promptcache.model.mpt import MptForCausalLM
 from promptcache.prompt import Preprocessor, escape_xml, PreprocessorList
 
 
@@ -231,10 +232,10 @@ class Mpt(LanguageModel):
     def get_cache_shape(self) -> Tuple[int, int, int]:
         head_dim = self.hf_model.config.d_model // self.hf_model.config.n_heads,
         return self.hf_model.config.n_layers, self.hf_model.config.n_heads, head_dim[0]
-
-    def store_k_hook(self, v_cache: torch.Tensor) -> torch.Tensor:
-        # batch, n_layers, seq_len, head_dim = v_cache.shape
-        return v_cache.transpose(2, 3)
-
-    def read_k_hook(self, v_cache: torch.Tensor) -> torch.Tensor:
-        return v_cache.transpose(1, 2)
+    #
+    # def store_k_hook(self, v_cache: torch.Tensor) -> torch.Tensor:
+    #     # batch, n_layers, seq_len, head_dim = v_cache.shape
+    #     return v_cache.transpose(2, 3)
+    #
+    # def read_k_hook(self, v_cache: torch.Tensor) -> torch.Tensor:
+    #     return v_cache.transpose(1, 2)
