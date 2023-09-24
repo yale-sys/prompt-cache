@@ -1,10 +1,10 @@
 import abc
-from typing import Callable, List, Optional
+from typing import Callable, List, Optional, Tuple
 import torch
 import re
 
 from transformers import AutoTokenizer, AutoModelForCausalLM, LlamaTokenizer, LlamaForCausalLM, PreTrainedTokenizer, \
-    FalconForCausalLM, PretrainedConfig, PreTrainedModel
+    FalconForCausalLM, PretrainedConfig, PreTrainedModel, MptForCausalLM
 
 from promptcache.prompt import Preprocessor, escape_xml, PreprocessorList
 
@@ -103,6 +103,23 @@ class LanguageModel(abc.ABC):
     def get_formatter(self) -> Callable[[str], str]:
         pass
 
+    def get_cache_shape(self) -> Tuple[int, int, int]:
+        num_head = self.config.num_attention_heads,
+        head_dim = self.config.hidden_size // self.config.num_attention_heads,
+        return self.lm.config.num_hidden_layers, num_head, head_dim
+
+    def store_k_hook(self, k_cache: torch.Tensor) -> torch.Tensor:
+        return k_cache
+
+    def store_v_hook(self, v_cache: torch.Tensor) -> torch.Tensor:
+        return v_cache
+
+    def read_k_hook(self, k_cache: torch.Tensor) -> torch.Tensor:
+        return k_cache
+
+    def read_v_hook(self, v_cache: torch.Tensor) -> torch.Tensor:
+        return v_cache
+
     def __call__(self, **kwargs):
         return self.hf_model(**kwargs)
 
@@ -181,3 +198,43 @@ class Falcon(LanguageModel):
 
     def get_formatter(self) -> Callable[[str], str]:
         return self.formatter
+
+    def get_cache_shape(self) -> Tuple[int, int, int]:
+        head_dim = self.hf_model.config.hidden_size // self.hf_model.config.num_attention_heads,
+        return self.hf_model.config.num_hidden_layers, 1, head_dim
+
+
+class Mpt(LanguageModel):
+    def __init__(self, name="mosaicml/mpt-7b-chat", **kwargs):
+        # tokenizer = AutoTokenizer.from_pretrained("EleutherAI/gpt-neox-20b", trust_remote_code=True)
+        tokenizer = AutoTokenizer.from_pretrained(name, trust_remote_code=True)
+
+        model = MptForCausalLM.from_pretrained(name, max_seq_len=8192,
+                                               **kwargs)
+
+        conv = FormatConversation(
+            system=("<|im_start|>system\n", "<|im_end|>\n", ""),
+            user=("<|im_start|>user\n", "<|im_end|>\n<|im_start|>assistant\n"),
+            assistant=("", "<|im_end|>\n"))
+
+        self.formatter = conv
+
+        stop_token_ids = [50278, 0]
+        stop_str = []
+
+        super().__init__(name, model, tokenizer, stop_token_ids, stop_str)
+
+    def get_formatter(self) -> Callable[[str], str]:
+        return self.formatter
+
+    # https://huggingface.co/mosaicml/mpt-7b-chat/blob/main/configuration_mpt.py
+    def get_cache_shape(self) -> Tuple[int, int, int]:
+        head_dim = self.hf_model.config.d_model // self.hf_model.config.n_heads,
+        return self.hf_model.config.n_layers, self.hf_model.config.n_heads, head_dim[0]
+
+    def store_k_hook(self, v_cache: torch.Tensor) -> torch.Tensor:
+        # batch, n_layers, seq_len, head_dim = v_cache.shape
+        return v_cache.transpose(2, 3)
+
+    def read_k_hook(self, v_cache: torch.Tensor) -> torch.Tensor:
+        return v_cache.transpose(1, 2)

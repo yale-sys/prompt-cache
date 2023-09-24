@@ -94,7 +94,7 @@ class PromptCache:
              torch.empty(num_head, max_ctx_length, head_dim, device=device, dtype=torch.half)) for _ in
             range(num_layers)]
 
-        # print(num_head, max_ctx_length, head_dim)
+        print(num_head, max_ctx_length, head_dim)
 
         # stores staged modules
         self.staged = []
@@ -127,6 +127,11 @@ class PromptCache:
             for i in range(len(self.device_cache)):
                 k_cache_tgt, v_cache_tgt = self.device_cache[i]
                 k_cache_src, v_cache_src = m.cache[i]
+
+                # print('k_src', k_cache_src.shape)
+                # print('v_src', v_cache_src.shape)
+                # print('k_tgt', k_cache_tgt.shape)
+                # print('v_tgt', v_cache_tgt.shape)
 
                 k_cache_tgt[:, st:ed, :].copy_(k_cache_src, non_blocking=True)
                 v_cache_tgt[:, st:ed, :].copy_(v_cache_src, non_blocking=True)
@@ -209,7 +214,8 @@ class SchemaCache:
 
             d_output = self.lm(
                 input_ids=torch.tensor([token_ids], device=self.lm.device, dtype=torch.long),
-                position_ids=torch.tensor([position_ids], device=self.lm.device, dtype=torch.long),
+                # position_ids=torch.tensor([position_ids], device=self.lm.device, dtype=torch.long),
+                use_cache=True
             )
 
             # print(d_output.past_key_values[0].shape)
@@ -234,15 +240,31 @@ class SchemaCache:
                 st = position_ids.index(offset)
                 ed = st + length
 
-                # it is already on the cpu.
-                if self.lm.device.type == 'cpu':
-                    tc_cache = [(kv_cache[i][0][:, :, st:ed, :].squeeze(0).detach(),
-                                 kv_cache[i][1][:, :, st:ed, :].squeeze(0).detach())
-                                for i in range(len(kv_cache))]
-                else:
-                    tc_cache = [(kv_cache[i][0][:, :, st:ed, :].squeeze(0).detach().cpu(),
-                                 kv_cache[i][1][:, :, st:ed, :].squeeze(0).detach().cpu())
-                                for i in range(len(kv_cache))]
+                tc_cache = []
+
+                for i in range(len(kv_cache)):
+                    k_cache = self.lm.store_k_hook(kv_cache[i][0])
+                    v_cache = self.lm.store_v_hook(kv_cache[i][1])
+
+                    k_cache_tc = k_cache[:, :, st:ed, :].squeeze(0).detach()
+                    v_cache_tc = v_cache[:, :, st:ed, :].squeeze(0).detach()
+
+                    if self.lm.device.type != 'cpu':
+                        k_cache_tc = k_cache_tc.cpu()
+                        v_cache_tc = v_cache_tc.cpu()
+
+                    tc_cache.append((k_cache_tc, v_cache_tc))
+
+                #
+                # # it is already on the cpu.
+                # if self.lm.device.type == 'cpu':
+                #     tc_cache = [(kv_cache[i][0][:, :, st:ed, :].squeeze(0).detach(),
+                #                  kv_cache[i][1][:, :, st:ed, :].squeeze(0).detach())
+                #                 for i in range(len(kv_cache))]
+                # else:
+                #     tc_cache = [(kv_cache[i][0][:, :, st:ed, :].squeeze(0).detach().cpu(),
+                #                  kv_cache[i][1][:, :, st:ed, :].squeeze(0).detach().cpu())
+                #                 for i in range(len(kv_cache))]
 
                 self.cache_l1[id(tc)] = TokenSequenceCache(tc, tc_cache)
 
@@ -285,15 +307,13 @@ class CacheEngine:
         self.lm = lm
         self.schemas = dict()
 
-        num_head = lm.config.num_attention_heads
-        if 'falcon' in lm.name:
-            num_head = 1
+        num_layers, num_head, head_dim = lm.get_cache_shape()
 
         self.prompt_cache = PromptCache(
             max_ctx_length=max_ctx_length,
-            num_layers=lm.config.num_hidden_layers,
+            num_layers=num_layers,
             num_head=num_head,
-            head_dim=lm.config.hidden_size // lm.config.num_attention_heads,
+            head_dim=head_dim,
             device=lm.device
         )
 
@@ -380,6 +400,14 @@ class CacheEngine:
                 stack.append((m, submodule))
 
         # add trailing text
+
+        # print(prompt.text)
+
+        # aa = self.lm.hf_tokenizer.tokenize(prompt.text)
+        # print(aa)
+        # aa = self.lm.hf_tokenizer.tokenize('\n')
+        # print('newline,', aa)
+
         text_token_ids = self.lm.encode(prompt.text)
         text_position_ids = list(range(len(schema), len(schema) + len(text_token_ids)))
 
@@ -418,11 +446,15 @@ class CacheEngine:
 
             # update prompt cache. this incurs some memcpy overhead.
             self.prompt_cache.update(used_seq_caches)
-
+            cache = self.prompt_cache.cache
             end.record()
             torch.cuda.synchronize()
             cache_time = start.elapsed_time(end)
 
+            # apply read hook
+            for i in range(len(cache)):
+                cache[i] = (self.lm.read_k_hook(cache[i][0]), self.lm.read_v_hook(cache[i][1]))
+
             print(f'Cache overhead: {cache_time:.2f} ms')
 
-            return input_ids, position_ids, self.prompt_cache.cache
+            return input_ids, position_ids, cache

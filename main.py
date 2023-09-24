@@ -1,6 +1,6 @@
 import torch.cuda
 
-from promptcache.model import Llama2, Falcon
+from promptcache.model import Llama2, Falcon, Mpt
 from transformers import (
     AutoTokenizer, LlamaForCausalLM, LlamaTokenizer,
 
@@ -14,7 +14,7 @@ def main():
     ### Configurations ###
 
     disable_cuda = False
-    disable_prompt_cache = True
+    disable_prompt_cache = False
 
     ######################
 
@@ -22,9 +22,13 @@ def main():
     #             load_in_8bit=True if not disable_cuda else False,
     #             device_map="auto" if not disable_cuda else None)
 
-    lm = Falcon("tiiuae/falcon-7b-instruct",
-                load_in_8bit=True if not disable_cuda else False,
-                device_map="auto" if not disable_cuda else None)
+    # lm = Falcon("tiiuae/falcon-7b-instruct",
+    #             load_in_8bit=True if not disable_cuda else False,
+    #             device_map="auto" if not disable_cuda else None)
+
+    lm = Mpt("mosaicml/mpt-7b-chat-8k",
+             load_in_8bit=True if not disable_cuda else False,
+             device_map="auto" if not disable_cuda else None)
 
     # tokenizer = LlamaTokenizer.from_pretrained(model_path)
     # model = LlamaForCausalLM.from_pretrained(model_path,
@@ -44,6 +48,7 @@ def main():
 
     # cache_engine.add_schema(read_file("./benchmark/schema_mbti.xml", preproc))
     cache_engine.add_schema(read_file("./benchmark/schema_persona_long.xml", preproc))
+    cache_engine.add_schema(read_file("./benchmark/empty.xml", preproc))
 
     # torch.cuda.synchronize()
     # print(f'Mem: {torch.cuda.memory_allocated(0) / (1e6):.2f} MB')
@@ -81,6 +86,10 @@ def main():
         </personality>
     """
 
+    # prompt_text = """
+    #     <prompt schema='empty'>
+    #     """
+
     # text chat interface
     while True:
         try:
@@ -95,6 +104,7 @@ def main():
         prompt_text += f"<user>{inp}</user>"
 
         prompt = Prompt(prompt_text + "</prompt>", preproc)
+        # print(prompt)
         token_ids, position_ids, cache = cache_engine.process(prompt, no_cache=disable_prompt_cache)
         if disable_prompt_cache:
             assert cache is None
@@ -103,7 +113,7 @@ def main():
 
         txt = lm.decode(token_ids)
 
-        print(txt)
+        # print(txt)
 
         print(f"Assistant: ", end="", flush=True)
 

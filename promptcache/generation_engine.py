@@ -101,7 +101,7 @@ class GenerationEngine:
 
                 start.record()
                 out = self.lm(input_ids=input_ids,
-                              position_ids=position_ids,
+                              #position_ids=position_ids,
                               past_key_values=cache,
                               use_cache=True)
                 end.record()
@@ -119,7 +119,7 @@ class GenerationEngine:
                 position_ids = torch.tensor([[position_offset + i]], device=device, dtype=torch.long)
                 t1 = time.time()
                 out = self.lm(input_ids=input_ids,
-                              position_ids=position_ids,
+                              #position_ids=position_ids,
                               past_key_values=past_key_values,
                               use_cache=True)
                 inference_time += time.time() - t1
