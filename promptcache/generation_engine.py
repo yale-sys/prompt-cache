@@ -1,6 +1,6 @@
 import gc
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional, Generator, List
 
 import torch
@@ -25,7 +25,8 @@ class GenerationParameters:
     top_p: float = 0.95
     top_k: int = 50
     max_new_tokens: int = 256
-    stop_token_ids: Optional[List[int]] = None
+    stop_token_ids: List[int] = field(default_factory=lambda: [])
+    stop_str: List[str] = field(default_factory=lambda: [])
     echo: bool = True
 
     def get_logits_processor(self):
@@ -39,6 +40,14 @@ class GenerationParameters:
         if self.top_k > 0:
             p.append(TopKLogitsWarper(self.top_k))
         return p
+
+
+def is_partial_stop(output: str, stop_str: str):
+    """Check whether the output contains a partial stop str."""
+    for i in range(0, min(len(output), len(stop_str))):
+        if stop_str.startswith(output[-i:]):
+            return True
+    return False
 
 
 @dataclass
@@ -80,16 +89,12 @@ class GenerationEngine:
             # initial phase
             if past_key_values is None:
 
-                # upload to the GPU
-
                 input_ids = torch.tensor([token_ids], device=device, dtype=torch.long)
                 position_ids = torch.tensor([position_ids], device=device, dtype=torch.long)
-                use_cache = False
 
                 # add redundant batch dim
                 if cache is not None:
                     cache = [(k[0].unsqueeze(0), k[1].unsqueeze(0)) for k in cache]
-                    use_cache = True
 
                 start = torch.cuda.Event(enable_timing=True)
                 end = torch.cuda.Event(enable_timing=True)
@@ -98,7 +103,7 @@ class GenerationEngine:
                 out = self.lm(input_ids=input_ids,
                               position_ids=position_ids,
                               past_key_values=cache,
-                              use_cache=use_cache)
+                              use_cache=True)
                 end.record()
                 torch.cuda.synchronize()
                 inference_time += start.elapsed_time(end)
@@ -147,7 +152,22 @@ class GenerationEngine:
             if i % stream_interval == 0 or i == params.max_new_tokens - 1 or stopped:
                 output = self.lm.decode(output_ids)
                 new_output = self.lm.decode(new_output_ids)
-                yield Output(output, new_output, inference_time)
+
+                partially_stopped = False
+
+                for each_stop in params.stop_str:
+                    pos = new_output.rfind(each_stop, 0)
+                    if pos != -1:
+                        output = output[:pos]
+                        stopped = True
+                        break
+                    else:
+                        partially_stopped = is_partial_stop(output, each_stop)
+                        if partially_stopped:
+                            break
+
+                if not partially_stopped:
+                    yield Output(output, new_output, inference_time)
 
             if stopped:
                 break

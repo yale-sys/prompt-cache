@@ -6,7 +6,7 @@ import re
 from transformers import AutoTokenizer, AutoModelForCausalLM, LlamaTokenizer, LlamaForCausalLM, PreTrainedTokenizer, \
     FalconForCausalLM, PretrainedConfig, PreTrainedModel
 
-from promptcache.prompt import Preprocessor, escape_xml
+from promptcache.prompt import Preprocessor, escape_xml, PreprocessorList
 
 
 # supported models
@@ -89,13 +89,15 @@ class LanguageModel(abc.ABC):
     hf_tokenizer: PreTrainedTokenizer
     hf_model: PreTrainedModel
     stop_token_ids: List[int]
+    stop_str: List[str]
 
     def __init__(self, name: str, model: PreTrainedModel, tokenizer: PreTrainedTokenizer,
-                 stop_token_ids: Optional[List[int]] = None):
+                 stop_token_ids: Optional[List[int]] = None, stop_str: Optional[List[str]] = None):
         self.name = name
         self.hf_tokenizer = tokenizer
         self.hf_model = model
         self.stop_token_ids = stop_token_ids if stop_token_ids is not None else [self.eos_token_id]
+        self.stop_str = stop_str if stop_str is not None else []
 
     @abc.abstractmethod
     def get_formatter(self) -> Callable[[str], str]:
@@ -159,12 +161,23 @@ class Falcon(LanguageModel):
         tokenizer = AutoTokenizer.from_pretrained(name)
         model = FalconForCausalLM.from_pretrained(name, **kwargs)
 
-        self.formatter = FormatConversation(
-            system=("System: ", "\n", "System :\n"),
-            user=("User: ", "\nFalcon:"),
-            assistant=(" ", "\n"))
+        def rep(prompt: str) -> str:
+            return prompt.replace("\r\n", "\n").replace("\n\n", "\n")
 
-        super().__init__(name, model, tokenizer)
+        conv = FormatConversation(
+            system=("", "\n\n", ""),
+            user=("User: ", "\n\nAssistant:"),
+            assistant=(" ", "\n\n"))
+
+        self.formatter = PreprocessorList([
+            rep, conv
+        ])
+
+        stop_token_ids = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+
+        stop_str = ["\nUser"]
+
+        super().__init__(name, model, tokenizer, stop_token_ids, stop_str)
 
     def get_formatter(self) -> Callable[[str], str]:
         return self.formatter

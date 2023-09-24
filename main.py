@@ -14,7 +14,7 @@ def main():
     ### Configurations ###
 
     disable_cuda = False
-    disable_prompt_cache = False
+    disable_prompt_cache = True
 
     ######################
 
@@ -54,7 +54,8 @@ def main():
         top_p=0.95,
         top_k=-1,
         max_new_tokens=512,
-        stop_token_ids=[lm.eos_token_id],
+        stop_token_ids=lm.stop_token_ids,
+        stop_str=lm.stop_str
     )
 
     # prompt_text = "<prompt schema='mbti'> <E/><N/><T/><P/>"
@@ -94,8 +95,9 @@ def main():
         prompt_text += f"<user>{inp}</user>"
 
         prompt = Prompt(prompt_text + "</prompt>", preproc)
-
+        print(prompt)
         token_ids, position_ids, cache = cache_engine.process(prompt, no_cache=disable_prompt_cache)
+        print(position_ids)
 
         if disable_prompt_cache:
             assert cache is None

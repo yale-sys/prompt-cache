@@ -94,7 +94,7 @@ class PromptCache:
              torch.empty(num_head, max_ctx_length, head_dim, device=device, dtype=torch.half)) for _ in
             range(num_layers)]
 
-        #print(num_head, max_ctx_length, head_dim)
+        # print(num_head, max_ctx_length, head_dim)
 
         # stores staged modules
         self.staged = []
@@ -404,7 +404,7 @@ class CacheEngine:
 
             print(f'Cache overhead: {cache_time:.2f} ms')
 
-            return orig_input_ids, orig_position_ids, None
+            return list(orig_input_ids), list(orig_position_ids), None
         else:
 
             used_seq_caches = []

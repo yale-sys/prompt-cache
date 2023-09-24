@@ -54,6 +54,21 @@ class Preprocessor(ABC):
         raise NotImplementedError
 
 
+class PreprocessorList(Preprocessor):
+    """This class is used to preprocess the prompt before it is passed to the model."""
+    pre: List[Preprocessor]
+
+    def __init__(self, pre: List[Preprocessor]):
+        self.pre = pre
+
+        super().__init__()
+
+    def __call__(self, prompt: str) -> str:
+        for p in self.pre:
+            prompt = p(prompt)
+        return prompt
+
+
 class CompactSpaces(Preprocessor):
     """This class is used to remove all leading and trailing whitespaces."""
     only_surrounding: bool
