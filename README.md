@@ -32,47 +32,6 @@ Install dependencies for the transformer inference:
 pip install deepspeed bitsandbytes peft protobuf lxml
 ```
 
-Install editable up-to-date `transformers` by
-
-```bash
-(assume that you are inside this repository)
-git submodule init
-git submodule update
-cd transformers
-pip install -e .
-```
-
-Then, run the following command (inside cloned `transformers` repo)
-
-```bash
-sed -i 's/cos, sin = self.rotary_emb(value_states, seq_len=kv_seq_len)/cos, sin = self.rotary_emb(value_states, seq_len=torch.max(position_ids) + 1)/' src/transformers/models/llama/modeling_llama.py
-sed -i 's/past_kv_length = 0 if layer_past is None else layer_past[0].shape[1]/past_kv_length = torch.max(position_ids) + 1/' src/transformers/models/falcon/modeling_falcon.py
-```
-
-to
-modify `src/transformers/models/llama/modeling_llama.py` [L332](https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/modeling_llama.py#L332)
-as follows
-> ```python
-> # from this
-> cos, sin = self.rotary_emb(value_states, seq_len=kv_seq_len)
-> # to this
-> cos, sin = self.rotary_emb(value_states, seq_len=torch.max(position_ids) + 1)
-> ```
-
-to
-modify `src/transformers/models/falcon/modeling_falcon.py` [L448](https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/modeling_llama.py#L332)
-as follows
-> ```python
-> # from this
-> past_kv_length = 0 if layer_past is None else layer_past[0].shape[1]
-> # to this
-> past_kv_length = torch.max(position_ids) + 1
-> ```
-
-
-This is to support positional embedding on sparse position ids. This hack will be later replaced by a PR to the
-upstream.
-
 ### Demo
 
 Simple demonstration code is located inside `main.py`. You can run it by
