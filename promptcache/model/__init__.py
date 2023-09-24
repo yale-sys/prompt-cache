@@ -3,9 +3,11 @@ from typing import Callable, List, Optional, Tuple
 import torch
 import re
 
-from transformers import AutoTokenizer, AutoModelForCausalLM, LlamaTokenizer, LlamaForCausalLM, PreTrainedTokenizer, \
-    FalconForCausalLM, PretrainedConfig, PreTrainedModel
+from transformers import AutoTokenizer, AutoModelForCausalLM, LlamaTokenizer, PreTrainedTokenizer, \
+    PretrainedConfig, PreTrainedModel
 
+from promptcache.model.falcon import FalconForCausalLM
+from promptcache.model.llama2 import LlamaForCausalLM
 from promptcache.model.mpt import MptForCausalLM
 from promptcache.prompt import Preprocessor, escape_xml, PreprocessorList
 
