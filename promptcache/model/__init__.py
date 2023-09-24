@@ -108,9 +108,10 @@ class LanguageModel(abc.ABC):
         pass
 
     def get_cache_shape(self) -> Tuple[int, int, int]:
-        num_head = self.config.num_attention_heads,
-        head_dim = self.config.hidden_size // self.config.num_attention_heads,
-        return self.lm.config.num_hidden_layers, num_head, head_dim
+        num_head = self.config.num_attention_heads
+        head_dim = self.config.hidden_size // self.config.num_attention_heads
+
+        return self.config.num_hidden_layers, num_head, head_dim
 
     def store_k_hook(self, k_cache: torch.Tensor) -> torch.Tensor:
         return k_cache

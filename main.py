@@ -22,13 +22,13 @@ def main():
     #             load_in_8bit=True if not disable_cuda else False,
     #             device_map="auto" if not disable_cuda else None)
 
-    # lm = Falcon("tiiuae/falcon-7b-instruct",
-    #             load_in_8bit=True if not disable_cuda else False,
-    #             device_map="auto" if not disable_cuda else None)
+    lm = Falcon("tiiuae/falcon-7b-instruct",
+                load_in_8bit=True if not disable_cuda else False,
+                device_map="auto" if not disable_cuda else None)
 
-    lm = Mpt("mosaicml/mpt-7b-chat-8k",
-             load_in_8bit=True if not disable_cuda else False,
-             device_map="auto" if not disable_cuda else None)
+    # lm = Mpt("mosaicml/mpt-7b-chat-8k",
+    #          load_in_8bit=True if not disable_cuda else False,
+    #          device_map="auto" if not disable_cuda else None)
 
     # tokenizer = LlamaTokenizer.from_pretrained(model_path)
     # model = LlamaForCausalLM.from_pretrained(model_path,
