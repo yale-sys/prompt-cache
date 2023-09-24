@@ -404,7 +404,9 @@ class CacheEngine:
 
             print(f'Cache overhead: {cache_time:.2f} ms')
 
-            return list(orig_input_ids), list(orig_position_ids), None
+            vv = list(range(len(orig_position_ids)))
+
+            return orig_input_ids, vv, None
         else:
 
             used_seq_caches = []

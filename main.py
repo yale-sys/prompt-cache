@@ -95,14 +95,15 @@ def main():
         prompt_text += f"<user>{inp}</user>"
 
         prompt = Prompt(prompt_text + "</prompt>", preproc)
-        print(prompt)
         token_ids, position_ids, cache = cache_engine.process(prompt, no_cache=disable_prompt_cache)
-        print(position_ids)
-
         if disable_prompt_cache:
             assert cache is None
 
         output_stream = gen_engine.generate(token_ids, position_ids, parameter, cache, stream_interval=2)
+
+        txt = lm.decode(token_ids)
+
+        print(txt)
 
         print(f"Assistant: ", end="", flush=True)
 

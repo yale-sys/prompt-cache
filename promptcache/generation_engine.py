@@ -114,7 +114,6 @@ class GenerationEngine:
                 past_key_values = out.past_key_values
 
             else:
-
                 # upload to the GPU
                 input_ids = torch.tensor([[new_token_id]], device=device, dtype=torch.long)
                 position_ids = torch.tensor([[position_offset + i]], device=device, dtype=torch.long)
