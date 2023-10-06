@@ -39,7 +39,6 @@ from transformers.utils import (
     is_flash_attn_available,
     logging,
 )
-from transformers.models.auto.configuration_auto import sanitize_code_revision
 from transformers.models.falcon.configuration_falcon import FalconConfig
 
 if is_flash_attn_available():
@@ -987,7 +986,6 @@ class FalconPreTrainedModel(PreTrainedModel):
             use_safetensors: bool = None,
             **kwargs,
     ):
-        revision = sanitize_code_revision(pretrained_model_name_or_path, revision, kwargs.get("trust_remote_code"))
 
         return super().from_pretrained(
             pretrained_model_name_or_path,

@@ -14,7 +14,7 @@ def main():
     ### Configurations ###
 
     disable_cuda = False
-    disable_prompt_cache = False
+    disable_prompt_cache = True
 
     ######################
 
