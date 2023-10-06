@@ -1,20 +1,17 @@
 import torch.cuda
-
+import fire
 from promptcache.model import Llama2, Falcon, Mpt
 from transformers import (
     AutoTokenizer, LlamaForCausalLM, LlamaTokenizer,
-
 )
-
 from promptcache import Prompt, CompactSpaces, read_file, CacheEngine, \
     GenerationEngine, GenerationParameters, llama2_template
 
-
-def main():
+def main(enable_cache=False):
     ### Configurations ###
 
     disable_cuda = False
-    disable_prompt_cache = True
+    disable_prompt_cache = not enable_cache
 
     ######################
 
@@ -129,6 +126,5 @@ def main():
         print("\n")
         prompt_text += f"<assistant>{resp}</assistant>"
 
-
 if __name__ == "__main__":
-    main()
+    fire.Fire(main)

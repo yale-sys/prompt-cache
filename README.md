@@ -29,7 +29,7 @@ have access to it. You may use other LLMs, but you need to modify the chat prepr
 Install dependencies for the transformer inference:
 
 ```bash
-pip install deepspeed bitsandbytes peft protobuf lxml
+pip install deepspeed bitsandbytes peft protobuf lxml SentencePiece scipy
 ```
 
 ### Demo
