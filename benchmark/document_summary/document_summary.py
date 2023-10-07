@@ -7,16 +7,21 @@ sys.path.append(os.path.abspath(os.path.join(document_summary_path, '..')))
 
 from benchmark_base import Benchmark
 from dataset_download import load_documentation_summary
+from utils import XMLSchemaBuilder
 
+_document_schema_name = "document_summary"
 _document_header = "Document"
 _document_dataset = "train"
+_document_system_description = "Dialogues between a user and an AI about the document provided by the user with the aim of being helpful, aware, and accurate."
+_document_user_description = "Summarize the following document in around five sentences:"
+_document_assistant_description = "Here is the summary of the document:"
 
 class DocumentSummary(Benchmark):
     def __init__(self):
         super().__init__()
         self.next_query_idx = 0
 
-    def init(self, verbose=False):
+    def init(self, xml_path=os.path.join(document_summary_path, "./schema_summary_sample.xml"), verbose=False):
         """
         Download (one time) and load the dataset to run; 
         Do any preprocessing required for running this benchmark.
@@ -24,13 +29,46 @@ class DocumentSummary(Benchmark):
         self.dataset = load_documentation_summary()
         if verbose:
             print("Dataset loaded. First entry below:")
-            print(self.dataset[_document_dataset][0])
+            print(self.dataset[_document_dataset][1])
+        # Now we can generate xml files
+        assert self.dataset is not None
+        self._generate_xml(xml_path)
+    
+    def _generate_xml(self, xml_path, num_queries=10):
+        # Generate xml files
+        # Create an instance of XMLSchemaBuilder with the schema name "document_summary"
+        builder = XMLSchemaBuilder(_document_schema_name)
 
-    def get_documents(self):
+        # Set the system description
+        builder.set_system_description(_document_system_description)
+
+        # Set the user description
+        builder.set_user_description(_document_user_description)
+
+        # Add document modules
+        for i in range(num_queries):
+            builder.add_document_module(f"{_document_header}{i}", self.dataset[_document_dataset][i]["document"])
+
+        # Set assistant reply
+        builder.set_assistant_description(_document_assistant_description)
+
+        # Generate the XML string
+        xml_string = builder.generate_xml()
+        # Write the XML string to a file
+        # - check the file path and make sure it is valid
+        if not os.path.exists(os.path.dirname(xml_path)):
+            os.makedirs(os.path.dirname(xml_path))
+        if os.path.exists(xml_path):
+            os.remove(xml_path)
+        with open(f"{xml_path}", "w") as f:
+            f.write(xml_string)
+        pass
+
+    def get_documents(self, xml_path=os.path.join(document_summary_path, "./schema_summary_sample.xml")):
         """
         Return a list of paths for XML files that need to be cached.
         """
-        return [document_summary_path + "/schema_summary_sample.xml", ]
+        return [xml_path]
 
     def get_next_query(self):
         """

@@ -38,27 +38,3 @@ class Benchmark:
         Take query_id and response_from_llm as parameters and return a score in the range [0,1].
         """
         raise NotImplementedError("This method should be overridden by subclass")
-
-# Test the base class by creating a subclass and overriding the methods
-class ExampleBenchmark(Benchmark):
-    def init(self):
-        print("Example init")
-
-    def get_documents(self):
-        return ["path1.xml", "path2.xml"]
-    
-    def get_next_query(self):
-        return 1, "query_string", ["module1", "module2"]
-    
-    def evaluate(self, query_id, response_from_llm):
-        return 0.9
-
-# Create an instance of the ExampleBenchmark and test the methods
-if __name__ == "__main__":
-    example_benchmark = ExampleBenchmark()
-    example_benchmark.init()
-    print(example_benchmark.get_documents())
-    query_id, query, modules = example_benchmark.get_next_query()
-    print(query_id, query, modules)
-    print(example_benchmark.evaluate(query_id, "response"))
-    pass
