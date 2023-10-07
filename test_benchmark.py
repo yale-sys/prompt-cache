@@ -42,25 +42,12 @@ profile_path = './benchmark/profiles/document_summary_simple.json'
 def run_sample_test(disable_prompt_cache):
     ### Configurations ###
     disable_cuda = False
-    # disable_cache = not disable_prompt_cache
 
     ######################
     lm = Llama2("meta-llama/Llama-2-7b-chat-hf",
                 load_in_8bit=True if not disable_cuda else False,
                 device_map="auto" if not disable_cuda else None)
 
-    # lm = Falcon("tiiuae/falcon-7b-instruct",
-    #             load_in_8bit=True if not disable_cuda else False,
-    #             device_map="auto" if not disable_cuda else None)
-
-    # lm = Mpt("mosaicml/mpt-7b-chat-8k",
-    #          load_in_8bit=True if not disable_cuda else False,
-    #          device_map="auto" if not disable_cuda else None)
-
-    # tokenizer = LlamaTokenizer.from_pretrained(model_path)
-    # model = LlamaForCausalLM.from_pretrained(model_path,
-    #                                          load_in_8bit=True if not disable_cuda else False,
-    #                                          device_map="auto" if not disable_cuda else None)
     cache_engine = CacheEngine(2500, lm)
     gen_engine = GenerationEngine(lm)
 
@@ -70,19 +57,9 @@ def run_sample_test(disable_prompt_cache):
     ]
 
     # Schema and prompt text setup
-    if not disable_prompt_cache:
-        cache_engine.add_schema(read_file("./benchmark/document_summary/schema_summary_sample.xml", preproc))
-    else:
-        cache_engine.add_schema(read_file("./benchmark/empty.xml", preproc))
-
-    prompt_text = None
-    if not disable_prompt_cache:
-        prompt_text = "<prompt schema='document_summary'> <Document0/>"
-    else:
-        prompt_text = """
-            <prompt schema='empty'>
-            """
-    assert prompt_text is not None
+    print("prompt cache: ", not disable_prompt_cache)
+    cache_engine.add_schema(read_file("./benchmark/document_summary/schema_summary_sample.xml", preproc))
+    prompt_text = "<prompt schema='document_summary'> <Document0/>"
 
     # Parameter setup
     parameter = GenerationParameters(
@@ -133,9 +110,7 @@ class TestDocumentSummary(unittest.TestCase):
 
     def test_llm_with_dataset(self):
         run_sample_test(not self.parser.get_data()['prompt_cache'])
-        # prompt_text += f"<assistant>{resp}</assistant>"
+
 
 if __name__ == '__main__':
-    # unittest.main()
-    run_sample_test(False)
-    
+    unittest.main()

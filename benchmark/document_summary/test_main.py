@@ -61,20 +61,19 @@ def main(enable_cache=False):
 
     # text chat interface
     while True:
-        # try:
-        #     inp = input("User: ")
-        # except EOFError:
-        #     inp = ""
+        try:
+            inp = input("User: ")
+        except EOFError:
+            inp = ""
 
-        # if inp == "exit" or not inp:
-        #     print("Terminating...")
-        #     break
+        if inp == "exit" or not inp:
+            print("Terminating...")
+            break
 
-        # prompt_text += f"<user>{inp}</user>"
-        prompt_text += f'<user> </user>'
-        print(prompt_text)
+        prompt_text += f"<user>{inp}</user>"
+
         prompt = Prompt(prompt_text + "</prompt>", preproc)
-        print(prompt)
+        # print(prompt)
         token_ids, position_ids, cache = cache_engine.process(prompt, no_cache=disable_prompt_cache,
                                                               return_full_position_ids=lm.use_full_position_ids)
         if disable_prompt_cache:
@@ -98,7 +97,6 @@ def main(enable_cache=False):
 
         print("\n")
         prompt_text += f"<assistant>{resp}</assistant>"
-        break
 
 if __name__ == "__main__":
     fire.Fire(main)
