@@ -214,4 +214,9 @@ Long contexts about documents, videos, or images are often used in LLM.
 </prompt>
 ```
 
+### Tests
+Test cases are placed inside `tests` directory. You can run all tests by `python tests/[TEST_NAME].py`. For example:
+```bash
+python tests/test_benchmark.py
+```
 
