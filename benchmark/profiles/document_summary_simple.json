@@ -1,0 +1,8 @@
+{
+    "benchmark_name": "Document summary simple",
+    "benchmark_description": "Document summary benchmark with a few entries from multi news dataset",
+    "benchmark_dataset_name": "document_summary",
+    "benchmark_dataset_comment": "This is the path name of the benchmark dataset module; always under benchmark/",
+    "dataset_size": "small",
+    "prompt_cache": true
+}
