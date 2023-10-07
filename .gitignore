@@ -161,3 +161,7 @@ cython_debug/
 
 # VSCode workspace
 *.code-workspace
+.vscode/
+
+# Models
+meta-llama/
