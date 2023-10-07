@@ -1,0 +1,5 @@
+{
+    "name": "tiiuae/falcon-7b-instruct",
+    "load_in_8bit": true,
+    "device_map": "auto"
+}
