@@ -1,10 +1,7 @@
-# import torch.cuda
-# import fire
-
 # Add the parent directory to the sys.path list
-# import os, sys
-# document_summary_path = os.path.abspath(os.path.dirname(__file__))
-# sys.path.append(os.path.abspath(os.path.join(document_summary_path, '../..')))
+import os, sys
+document_summary_path = os.path.abspath(os.path.dirname(__file__))
+sys.path.append(os.path.abspath(os.path.join(document_summary_path, '..')))
 
 import unittest
 from benchmark.profile_parser import JsonParser, BenchmarkProfileParser
@@ -56,11 +53,6 @@ def run_sample_test(disable_prompt_cache):
         lm.get_formatter()
     ]
 
-    # Schema and prompt text setup
-    print("prompt cache: ", not disable_prompt_cache)
-    cache_engine.add_schema(read_file("./benchmark/document_summary/schema_summary_sample.xml", preproc))
-    prompt_text = "<prompt schema='document_summary'> <Document0/>"
-
     # Parameter setup
     parameter = GenerationParameters(
         temperature=0.1,
@@ -72,45 +64,61 @@ def run_sample_test(disable_prompt_cache):
         stop_str=lm.stop_str
     )
 
-    # user portion of the prompt
-    prompt_text += f'<user> </user>'
-    print(prompt_text)
-    prompt = Prompt(prompt_text + "</prompt>", preproc)
-    print(prompt)
-    token_ids, position_ids, cache = cache_engine.process(prompt, no_cache=disable_prompt_cache,
-                                                        return_full_position_ids=lm.use_full_position_ids)
-    if disable_prompt_cache:
-        assert cache is None
+    # Schema and prompt text setup
+    print("prompt cache: ", not disable_prompt_cache)
+    cache_engine.add_schema(read_file("./benchmark/document_summary/schema_summary_sample.xml", preproc))
+    # prompt_text = "<prompt schema='document_summary'> <Document0/>"
+    for document_idx in range(10):
+        prompt_text = f'''
+        <prompt schema='document_summary'>
+        <Document{document_idx}/>
+        <user>Summarize the above document in around THREE sentences:</user>
+        </prompt>
+        '''
 
-    output_stream = gen_engine.generate(token_ids, position_ids, parameter, cache, stream_interval=2,
-                                        use_full_position_ids=lm.use_full_position_ids)
+        # user portion of the prompt
+        # prompt_text += f'<user> Provide only summary and do not ask back </user>'
+        # print(prompt_text)
+        prompt = Prompt(prompt_text, preproc)
+        # print(prompt)
+        token_ids, position_ids, cache = cache_engine.process(prompt, no_cache=disable_prompt_cache,
+                                                            return_full_position_ids=lm.use_full_position_ids)
+        if disable_prompt_cache:
+            assert cache is None
 
-    print(f"Assistant: ", end="", flush=True)
+        output_stream = gen_engine.generate(token_ids, position_ids, parameter, cache, stream_interval=2,
+                                            use_full_position_ids=lm.use_full_position_ids)
 
-    resp = ""
-    pre = 0
-    for outputs in output_stream:
-        output_text = outputs.new_text.strip().split(" ")
-        now = len(output_text) - 1
-        if now > pre:
-            tt = " ".join(output_text[pre:now])
-            resp += tt + " "
-            print(tt, end=" ", flush=True)
-            pre = now
+        print(f"Assistant: ", end="", flush=True)
 
-    print("\n")
+        resp = ""
+        pre = 0
+        for outputs in output_stream:
+            output_text = outputs.new_text.strip().split(" ")
+            now = len(output_text) - 1
+            if now > pre:
+                tt = " ".join(output_text[pre:now])
+                resp += tt + " "
+                print(tt, end=" ", flush=True)
+                pre = now
+
+        print("\n")
+    pass
+
+from benchmark.document_summary import  DocumentSummary
 
 class TestDocumentSummary(unittest.TestCase):
     def setUp(self):
         self.parser = BenchmarkProfileParser(profile_path)
         self.parser.parse()
+        self.document_summary = DocumentSummary()
+        self.document_summary.init(verbose=False)
 
     def test_load_config(self):
         self.assertIsInstance(self.parser.get_data(), dict)
 
     def test_llm_with_dataset(self):
         run_sample_test(not self.parser.get_data()['prompt_cache'])
-
 
 if __name__ == '__main__':
     unittest.main()
