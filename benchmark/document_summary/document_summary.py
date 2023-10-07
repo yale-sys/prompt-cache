@@ -46,6 +46,7 @@ class DocumentSummary(Benchmark):
         builder.set_user_description(_document_user_description)
 
         # Add document modules
+        builder.add_document_module("DOC", "The given documents are the target for the summarization task. They can contain multiple sentences.")
         for i in range(num_queries):
             builder.add_document_module(f"{_document_header}{i}", self.dataset[_document_dataset][i]["document"])
 
