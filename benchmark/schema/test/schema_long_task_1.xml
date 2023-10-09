@@ -1,0 +1,63 @@
+<!-- scenario: 1 -->
+
+<schema name="default">
+
+    <!-- Module name in the same scope must be unique -->
+    <module name="preface">
+
+        <!--
+        Module can be parameterized with <parameter> tag
+        - length: specifies the maximum length of the parameter value.
+        - scaffold: serve as a placeholder for parameter value during cache encoding. If not specified, unk_token will be used as a scaffold.
+        -->
+
+        Just some text with parameter:
+        <parameter name="param-name" length="5" scaffold="[to be filled later]"/>
+
+        <!-- Modules can be nested -->
+        <module name="nested">Nested</module>
+
+        <!--
+        There are some helper tags for chat-style LLM prompting. They will be replaced by LLM-specific tokens during cache encoding.
+        - <system> tag is used to specify system prompt
+        - <user> tag is used to specify user input
+        - <assistant> tag is used to specify assistant response
+         -->
+        <system>
+
+            <!--
+            Union tag is used to specify set of modules where one can be selected. (same offset index)
+            - scaffold: serve as a placeholder for selected module during cache encoding.
+            -->
+            <union scaffold="system1">
+                <module name="system1">System prompt type 1.</module>
+
+                <!--
+                Cache can be disabled for specific module by setting cache="false" attribute.
+                In this case, the KV cache for this module will be computed in every request.
+                -->
+                <module name="system2" cache="false">System prompt type 2.</module>
+                <module name="system3">System prompt type 3,
+                    with parameter:
+                    <parameter name="message" length="10"/>
+                </module>
+            </union>
+
+            <union>
+                <module name="user1" cache="false">User 1 information</module>
+                <module name="user2">User 2 information</module>
+            </union>
+        </system>
+    </module>
+
+    <module name="task">
+        <union>
+            <module name="task-robot-control">Task description 1
+                <parameter name="speed" length="5"/>
+            </module>
+            <module name="task-predict-future">Task description 1</module>
+            <module name="task-random">Task description 1</module>
+        </union>
+    </module>
+
+</schema>

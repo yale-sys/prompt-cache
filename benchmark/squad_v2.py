@@ -19,17 +19,19 @@ class SquadV2(Benchmark):
         self.dataset_name = "squad_v2"
         super().__init__(self.dataset_name)
 
-    def init(self):
+    def init(self, limit_entries=None):
         """
         Download (one time) and load the dataset to run; 
         Preprocess the dataset to be organized in the `Entry` format.
         """
         self.dataset = load_dataset(self.dataset_name)
+        count = 0
         for split in self.dataset.values():
-            cnt = 0
             for item in split:
+                if limit_entries is not None and count >= limit_entries:
+                    break
                 id = item["id"]
-                schema_name = f"{id}"
+                schema_name = f"schema_{id}"
                 builder = XMLSchemaBuilder(schema_name)
                 context = item["context"]
                 # title = item["title"]
@@ -40,21 +42,18 @@ class SquadV2(Benchmark):
                 builder.add_document_module("context", context)
                 builder.set_assistant_description(_document_assistant_description)
                 
-                schema_file_name = f"schema_{schema_name}.xml"
+                schema_file_name = f"{schema_name}.xml"
                 with open(os.path.join(self.schema_path, schema_file_name), "w") as f:
                     f.write(builder.generate_xml())
 
-                prompt = f'''
+                prompt = f"""
                 <prompt schema='{schema_name}'>
                 <context/>
-                <user>{question}</user>
-                </prompt>
-                '''
+                <user>{question}</user></prompt>
+                """
                 self.entries.append(Entry(schema_file_name, prompt, answer))
 
-                cnt += 1
-                if cnt > 1:
-                    break
+                count += 1
     
 if __name__ == '__main__':
     sq = SquadV2()

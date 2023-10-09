@@ -6,7 +6,7 @@
 #     * get_query(): return a list of Entry objects for the given range.
 import os
 
-SCHEMA_FILE_DIRECTORY = "./schema"
+SCHEMA_FILE_DIRECTORY = "schema"
 DATASET_LIST = ["squad_v2", "multi_news", "wiki_qa", "pubmed_qa", "ms_macro"]
 DATASET_SUBSET = {
     "multi_news": None,
