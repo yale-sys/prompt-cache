@@ -179,7 +179,7 @@ class TokenSequence(Element):
 class UnionModule(Element):
     modules: List[Module]
     length: int
-    scaffold_name: str
+    scaffold_name: Optional[str]
 
     def __init__(self, offset, spec: lxml.etree.Element, lm: LanguageModel):
 
@@ -187,6 +187,7 @@ class UnionModule(Element):
 
         self.modules = []
         self.length = 0
+        self.scaffold_name = None
 
         self._process(spec, lm)
 
@@ -212,8 +213,8 @@ class UnionModule(Element):
             self.scaffold_name = scaffold
 
         # if scaffold is empty, set first element as scaffold
-        else:
-            self.scaffold_name = self.modules[0].name
+        # else:
+        #     self.scaffold_name = self.modules[0].name
 
         self.length = max_len
 
@@ -446,6 +447,9 @@ class Scaffold(Element):
                     selected_module_name = union.scaffold_name
                 else:
                     selected_module_name = unique_names[0]
+
+                if selected_module_name is None:
+                    continue
 
                 selected_module = union.select(selected_module_name)
                 scaffold = Scaffold(selected_module, *[n.next for n in rel_paths])
