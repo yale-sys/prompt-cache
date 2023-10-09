@@ -1,6 +1,8 @@
 # Type hoisting
 from __future__ import annotations
 
+import os
+import pathlib
 from abc import ABC, abstractmethod
 import re
 
@@ -300,6 +302,20 @@ class Module(Element):
 
         offset = self.offset
         self.children = []
+
+        if "src" in root.attrib:
+            src_path = pathlib.Path(root.attrib["src"])
+
+            # check if file exists
+            if not src_path.exists():
+                raise ValueError(f"Module source file {src_path} does not exist")
+
+            text = compact_surrounding_spaces(src_path.read_text())
+
+            if len(text) > 0:
+                seq = TokenSequence(offset, text, lm)
+                self.children.append(seq)
+                offset += len(seq)
 
         # prefix text
         if root.text is not None:
