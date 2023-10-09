@@ -7,17 +7,28 @@ from transformers import (
 from promptcache import Prompt, CompactSpaces, read_file, CacheEngine, \
     GenerationEngine, GenerationParameters, llama2_template
 
+
 def main(enable_cache=False):
     ### Configurations ###
 
     disable_cuda = False
+
+    enable_cpu_inference = True
+
     disable_prompt_cache = not enable_cache
 
     ######################
 
-    lm = Llama2("meta-llama/Llama-2-7b-chat-hf",
-                load_in_8bit=True if not disable_cuda else False,
-                device_map="auto" if not disable_cuda else None)
+    lm_for_cache = Llama2("meta-llama/Llama-2-7b-chat-hf",
+                          load_in_8bit=True,
+                          device_map="auto")
+
+    lm = lm_for_cache
+
+    if enable_cpu_inference:
+        lm = Llama2("meta-llama/Llama-2-7b-chat-hf",
+                    load_in_8bit=False,
+                    device_map=None)
 
     # lm = Falcon("tiiuae/falcon-7b-instruct",
     #             load_in_8bit=True if not disable_cuda else False,
@@ -31,7 +42,7 @@ def main(enable_cache=False):
     # model = LlamaForCausalLM.from_pretrained(model_path,
     #                                          load_in_8bit=True if not disable_cuda else False,
     #                                          device_map="auto" if not disable_cuda else None)
-    cache_engine = CacheEngine(2500, lm)
+    cache_engine = CacheEngine(2500, lm_for_cache)
     gen_engine = GenerationEngine(lm)
 
     preproc = [
@@ -125,6 +136,7 @@ def main(enable_cache=False):
 
         print("\n")
         prompt_text += f"<assistant>{resp}</assistant>"
+
 
 if __name__ == "__main__":
     fire.Fire(main)
