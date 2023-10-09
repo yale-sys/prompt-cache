@@ -1,6 +1,8 @@
 # Type hoisting
 from __future__ import annotations
 
+import os
+import pathlib
 from abc import ABC, abstractmethod
 import re
 
@@ -179,7 +181,7 @@ class TokenSequence(Element):
 class UnionModule(Element):
     modules: List[Module]
     length: int
-    scaffold_name: str
+    scaffold_name: Optional[str]
 
     def __init__(self, offset, spec: lxml.etree.Element, lm: LanguageModel):
 
@@ -187,6 +189,7 @@ class UnionModule(Element):
 
         self.modules = []
         self.length = 0
+        self.scaffold_name = None
 
         self._process(spec, lm)
 
@@ -212,8 +215,8 @@ class UnionModule(Element):
             self.scaffold_name = scaffold
 
         # if scaffold is empty, set first element as scaffold
-        else:
-            self.scaffold_name = self.modules[0].name
+        # else:
+        #     self.scaffold_name = self.modules[0].name
 
         self.length = max_len
 
@@ -232,10 +235,10 @@ class UnionModule(Element):
     def position_ids(self) -> List[int]:
         raise ValueError("Cannot get position_ids() on union. Try again on its scaffold")
 
-    def select(self, path: Optional[Union[str, Path]] = None) -> Optional[Module]:
-
-        if path is None:
-            return self.select(self.scaffold_name)
+    def select(self, path: Union[str, Path]) -> Optional[Module]:
+        #
+        # if path is None:
+        #     return self.select(self.scaffold_name)
 
         if type(path) == str:
             path = Path(path)
@@ -299,6 +302,20 @@ class Module(Element):
 
         offset = self.offset
         self.children = []
+
+        if "src" in root.attrib:
+            src_path = pathlib.Path(root.attrib["src"])
+
+            # check if file exists
+            if not src_path.exists():
+                raise ValueError(f"Module source file {src_path} does not exist")
+
+            text = compact_surrounding_spaces(src_path.read_text())
+
+            if len(text) > 0:
+                seq = TokenSequence(offset, text, lm)
+                self.children.append(seq)
+                offset += len(seq)
 
         # prefix text
         if root.text is not None:
@@ -446,6 +463,9 @@ class Scaffold(Element):
                     selected_module_name = union.scaffold_name
                 else:
                     selected_module_name = unique_names[0]
+
+                if selected_module_name is None:
+                    continue
 
                 selected_module = union.select(selected_module_name)
                 scaffold = Scaffold(selected_module, *[n.next for n in rel_paths])
