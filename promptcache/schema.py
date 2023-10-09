@@ -443,11 +443,6 @@ class Scaffold(Element):
 
     def _process(self, *paths: Path):
 
-        # simple case: module is already a scaffold
-        if not self.module.contains_union():
-            self.children = self.module.children
-            return
-
         self.children = []
 
         for e in self.module.children:

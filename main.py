@@ -8,12 +8,12 @@ from promptcache import Prompt, CompactSpaces, read_file, CacheEngine, \
     GenerationEngine, GenerationParameters, llama2_template
 
 
-def main(enable_cache=False):
+def main(enable_cache=True):
     ### Configurations ###
 
     disable_cuda = False
 
-    enable_cpu_inference = True
+    enable_cpu_inference = False
 
     disable_prompt_cache = not enable_cache
 
@@ -55,8 +55,7 @@ def main(enable_cache=False):
     # print(f'Mem: {torch.cuda.memory_allocated(0) / (1e6):.2f} MB')
 
     # cache_engine.add_schema(read_file("./benchmark/schema/test/schema_mbti.xml", preproc))
-    cache_engine.add_schema(read_file("./benchmark/schema/test/schema_persona_long.xml", preproc), batch_size=4)
-    cache_engine.add_schema(read_file("./benchmark/schema/test/empty.xml", preproc))
+    cache_engine.add_schema(read_file("./benchmark/sss.xml", preproc))
 
     # torch.cuda.synchronize()
     # print(f'Mem: {torch.cuda.memory_allocated(0) / (1e6):.2f} MB')
@@ -71,71 +70,41 @@ def main(enable_cache=False):
         stop_str=lm.stop_str
     )
 
-    # prompt_text = "<prompt schema='mbti'> <E/><N/><T/><P/>"
-    prompt_text = """
-    <prompt schema='persona'>
-        <age>
-            <young-adult/>
-        </age>
-        <residence>
-            <seaside/>
-        </residence>
-        <education>
-            <doctorate/>
-        </education>
-        <occupation>
-            <technology/>
-        </occupation>
-        <martial-status>
-            <married/>
-        </martial-status>
-        <personality>
-            <introverted/>
-        </personality>
-    """
+
 
     prompt_text = """
-        <prompt schema='empty'>
+        <prompt schema='schema_56be85543aeaaa14008c9063'>
+                <context/>
+                <user>When did Beyonce start becoming popular?</user>
+        </prompt>
         """
 
-    # text chat interface
-    while True:
-        try:
-            inp = input("User: ")
-        except EOFError:
-            inp = ""
 
-        if inp == "exit" or not inp:
-            print("Terminating...")
-            break
+    prompt = Prompt(prompt_text, preproc)
+    # print(prompt)
+    token_ids, position_ids, cache = cache_engine.process(prompt, no_cache=disable_prompt_cache,
+                                                          return_full_position_ids=lm.use_full_position_ids)
+    if disable_prompt_cache:
+        assert cache is None
 
-        prompt_text += f"<user>{inp}</user>"
+    output_stream = gen_engine.generate(token_ids, position_ids, parameter, cache, stream_interval=2,
+                                        use_full_position_ids=lm.use_full_position_ids)
 
-        prompt = Prompt(prompt_text + "</prompt>", preproc)
-        # print(prompt)
-        token_ids, position_ids, cache = cache_engine.process(prompt, no_cache=disable_prompt_cache,
-                                                              return_full_position_ids=lm.use_full_position_ids)
-        if disable_prompt_cache:
-            assert cache is None
+    print(f"Assistant: ", end="", flush=True)
 
-        output_stream = gen_engine.generate(token_ids, position_ids, parameter, cache, stream_interval=2,
-                                            use_full_position_ids=lm.use_full_position_ids)
+    resp = ""
+    pre = 0
+    for outputs in output_stream:
+        output_text = outputs.new_text.strip().split(" ")
+        now = len(output_text) - 1
+        if now > pre:
+            tt = " ".join(output_text[pre:now])
+            resp += tt + " "
+            print(tt, end=" ", flush=True)
+            pre = now
 
-        print(f"Assistant: ", end="", flush=True)
-
-        resp = ""
-        pre = 0
-        for outputs in output_stream:
-            output_text = outputs.new_text.strip().split(" ")
-            now = len(output_text) - 1
-            if now > pre:
-                tt = " ".join(output_text[pre:now])
-                resp += tt + " "
-                print(tt, end=" ", flush=True)
-                pre = now
-
-        print("\n")
-        prompt_text += f"<assistant>{resp}</assistant>"
+    print("\n")
+    prompt_text += f"<assistant>{resp}</assistant>"
 
 
 if __name__ == "__main__":

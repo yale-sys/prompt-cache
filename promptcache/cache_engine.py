@@ -106,7 +106,7 @@ class PromptCache:
              torch.empty(num_head, max_ctx_length, head_dim, device=device, dtype=torch.half)) for _ in
             range(num_layers)]
 
-        print(num_head, max_ctx_length, head_dim)
+        # print(num_head, max_ctx_length, head_dim)
 
         # stores staged modules
         self.staged = []
@@ -266,6 +266,7 @@ class SchemaCache:
                     target = scaffold.select(path)
 
                     for tc in target.all_token_sequences():
+
                         offset = tc.offset
                         length = len(tc)
 
@@ -479,6 +480,7 @@ class CacheEngine:
 
             for s in used_sequences:
                 seq_cache = cached.get_cache_l1(s)
+
                 seq_cache.inc_usage_counter()
                 used_seq_caches.append(seq_cache)
 
