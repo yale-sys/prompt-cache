@@ -65,9 +65,12 @@ def run_sample_test(disable_prompt_cache):
     )
 
     # Schema and prompt text setup
+    # instatiate and init
+    # dataset_loader.get_cacheable_xml()
     print("prompt cache: ", not disable_prompt_cache)
     cache_engine.add_schema(read_file("./benchmark/document_summary/schema_summary_sample.xml", preproc))
     # prompt_text = "<prompt schema='document_summary'> <Document0/>"
+    
     for document_idx in range(10):
         prompt_text = f'''
         <prompt schema='document_summary'>
@@ -105,7 +108,7 @@ def run_sample_test(disable_prompt_cache):
         print("\n")
     pass
 
-from benchmark.document_summary import  DocumentSummary
+from benchmark.document_summary import DocumentSummary
 
 class TestDocumentSummary(unittest.TestCase):
     def setUp(self):

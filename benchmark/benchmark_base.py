@@ -2,39 +2,64 @@
 
 # * Required API
 #     * init() : download (one time) and load the dataset to run; do any preprocessing required for running this benchmark
-#     * get_documents(): return a list of the paths that need to be cached (the xml files)
-#     * get_next_query(): return query id (unsigned), query (string), and chosen modules (a list of string)
-#     * evaluate(query_id, response_from_llm): return score in [0,1] per query
+#     * get_entry_count(): return the number of entries in the dataset.
+#     * get_query(): return a list of Entry objects for the given range.
+import os
+
+SCHEMA_FILE_DIRECTORY = "./schema"
+DATASET_LIST = ["squad_v2", "multi_news", "wiki_qa", "pubmed_qa", "ms_macro"]
+DATASET_SUBSET = {
+    "multi_news": None,
+    "squad_v2": None,
+    "wiki_qa": None,
+    "pubmed_qa": ["pqa_artificial", "pqa_labeled", "pqa_unlabeled"],
+    "ms_macro": ["v1.1", "v2.1"]
+}
+
+class Entry:
+    def __init__(self, schema, prompt, answer=None):
+        """
+        Constructor to initialize any required variables.
+        [schema: str] path to the schema file, usage: cache_engine.add_schema(read_file(schema, preproc))
+        [prompt: str] prompt text, which I should feed to the llm directly, it contains the used schema name and the question from dataset
+        [answer: [str]] the potential answer list to the above question
+        """
+        self.schema = schema
+        self.prompt = prompt
+        self.answer = answer
+    
+    def __repr__(self) -> str:
+        return f"Entry(schema={self.schema}, prompt={self.prompt}, answer={self.answer})"
 
 class Benchmark:
-    def __init__(self):
+    def __init__(self, dataset_name: str):
         """
         Constructor to initialize any required variables.
         """
+        if dataset_name not in DATASET_LIST:
+            raise ValueError("Dataset name cannot be None, valid dataset names are: " + ", ".join(DATASET_LIST))
         self.dataset = None
-        pass
+        self.entries = []
+        self.schema_path = os.path.join(SCHEMA_FILE_DIRECTORY, dataset_name)
+        if not os.path.exists(self.schema_path):
+            os.makedirs(self.schema_path)
 
     def init(self):
         """
         Download (one time) and load the dataset to run; 
-        Do any preprocessing required for running this benchmark.
+        Preprocess the dataset to be organized in the `Entry` format.
         """
         raise NotImplementedError("This method should be overridden by subclass")
 
-    def get_documents(self) -> list:
+    def get_entry_count(self):
         """
-        Return a list of paths for XML files that need to be cached.
+        Return the number of entries in the dataset.
         """
-        raise NotImplementedError("This method should be overridden by subclass")
+        return len(self.entries)
 
-    def get_next_query(self) -> (int, str, list):
+    def get_query(self, range) -> [Entry]:
         """
-        Return query_id (unsigned), query (string), and chosen modules (a list of string).
+        Return a list of Entry objects for the given range.
+        [range: (int, int)] the range of entries to return
         """
-        raise NotImplementedError("This method should be overridden by subclass")
-        
-    def evaluate(self, query_id: int, response_from_llm: str) -> float:
-        """
-        Take query_id and response_from_llm as parameters and return a score in the range [0,1].
-        """
-        raise NotImplementedError("This method should be overridden by subclass")
+        return self.entries[range[0]:range[1]]

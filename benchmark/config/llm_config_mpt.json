@@ -1,0 +1,5 @@
+{
+    "name": "mosaicml/mpt-7b-chat-8k",
+    "load_in_8bit": true,
+    "device_map": "auto"
+}
