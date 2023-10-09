@@ -15,7 +15,7 @@ from promptcache import Prompt, CompactSpaces, read_file, CacheEngine, \
 from benchmark_base import Benchmark, Entry, DATASET_LIST, SCHEMA_FILE_DIRECTORY
 from squad_v2 import SquadV2
 
-BENCHMARK_PATH = os.path.abspath(os.path.dirname(__file__))
+BENCHMARK_PATH = "./benchmark"
 
 class Eval():
     def __init__(self, llm_config_path, dataset, enable_cache):
@@ -89,7 +89,7 @@ class Eval():
             entries = self.dataset.get_query((i, i + batch_cache_size))
             # load schema for `batch_cache_size` entries
             for entry in entries:
-                schema_file_path = os.path.join(BENCHMARK_PATH, SCHEMA_FILE_DIRECTORY, self.dataset.dataset_name, entry.schema)
+                schema_file_path = os.path.join(SCHEMA_FILE_DIRECTORY, self.dataset.dataset_name, entry.schema)
                 print(schema_file_path)
                 self.cache_engine.add_schema(read_file(schema_file_path, self.preproc), batch_size=self.llm_config.get("schema_load_batch", 1))
 
@@ -97,7 +97,7 @@ class Eval():
                 prompt = Prompt(entry.prompt, self.preproc)
                 print(entry.prompt)
                 no_cache = not self.enable_cache
-                token_ids, position_ids, cache = self.cache_engine.process(prompt, no_cache=no_cache,
+                token_ids, position_ids, cache_time, cache = self.cache_engine.process(prompt, no_cache=no_cache,
                                                               return_full_position_ids=self.lm.use_full_position_ids)
                 if no_cache:
                     assert cache is None
@@ -107,7 +107,9 @@ class Eval():
             
                 resp = ""
                 pre = 0
+                response_time = 0.0
                 for outputs in output_stream:
+                    response_time = outputs.response_time
                     output_text = outputs.new_text.strip().split(" ")
                     now = len(output_text) - 1
                     if now > pre:
@@ -117,13 +119,15 @@ class Eval():
                         pre = now
 
                 result = {
+                    "cache_time": cache_time,
+                    "response_time": response_time,
                     "answer": entry.answer,
                     "response": resp
                 }
                 self.store_results(result)
                 print("\n")
 
-def main(llm_config_path: str=os.path.join(BENCHMARK_PATH, "config/llm_config_llama2.json"), dataset: str="squad_v2", enable_cache=True):
+def main(llm_config_path: str=os.path.join(BENCHMARK_PATH, "config/llm_config_llama2.json"), dataset: str="squad_v2", enable_cache=False):
     eval = Eval(llm_config_path, dataset, enable_cache)
     eval.run()
 

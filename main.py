@@ -79,10 +79,9 @@ def main(enable_cache=True):
         </prompt>
         """
 
-
     prompt = Prompt(prompt_text, preproc)
     # print(prompt)
-    token_ids, position_ids, cache = cache_engine.process(prompt, no_cache=disable_prompt_cache,
+    token_ids, position_ids, cache_time, cache = cache_engine.process(prompt, no_cache=disable_prompt_cache,
                                                           return_full_position_ids=lm.use_full_position_ids)
     if disable_prompt_cache:
         assert cache is None

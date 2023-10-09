@@ -370,7 +370,7 @@ class CacheEngine:
         torch.cuda.empty_cache()
 
     def process(self, prompt: Prompt, no_cache: bool = False, return_full_position_ids: bool = False) -> Tuple[
-        List[int], List[int], Optional[KVCache]]:
+        List[int], List[int], float, Optional[KVCache]]:
 
         start = torch.cuda.Event(enable_timing=True)
         end = torch.cuda.Event(enable_timing=True)
@@ -473,7 +473,7 @@ class CacheEngine:
 
             vv = list(range(len(orig_position_ids)))
 
-            return orig_input_ids, vv, None
+            return orig_input_ids, vv, cache_time, None
         else:
 
             used_seq_caches = []
@@ -502,4 +502,4 @@ class CacheEngine:
                 position_ids = orig_position_ids + position_ids
 
             # print(orig_position_ids)
-            return input_ids, position_ids, cache
+            return input_ids, position_ids, cache_time, cache
