@@ -54,9 +54,9 @@ def main(enable_cache=False):
     # torch.cuda.synchronize()
     # print(f'Mem: {torch.cuda.memory_allocated(0) / (1e6):.2f} MB')
 
-    # cache_engine.add_schema(read_file("./benchmark/schema_mbti.xml", preproc))
-    cache_engine.add_schema(read_file("./benchmark/schema_persona_long.xml", preproc), batch_size=4)
-    cache_engine.add_schema(read_file("./benchmark/empty.xml", preproc))
+    # cache_engine.add_schema(read_file("./benchmark/schema/test/schema_mbti.xml", preproc))
+    cache_engine.add_schema(read_file("./benchmark/schema/test/schema_persona_long.xml", preproc), batch_size=4)
+    cache_engine.add_schema(read_file("./benchmark/schema/test/empty.xml", preproc))
 
     # torch.cuda.synchronize()
     # print(f'Mem: {torch.cuda.memory_allocated(0) / (1e6):.2f} MB')
