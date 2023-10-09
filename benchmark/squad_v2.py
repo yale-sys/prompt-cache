@@ -29,7 +29,7 @@ class SquadV2(Benchmark):
             cnt = 0
             for item in split:
                 id = item["id"]
-                schema_name = f"{id}"
+                schema_name = f"schema_{id}"
                 builder = XMLSchemaBuilder(schema_name)
                 context = item["context"]
                 # title = item["title"]
@@ -40,7 +40,7 @@ class SquadV2(Benchmark):
                 builder.add_document_module("context", context)
                 builder.set_assistant_description(_document_assistant_description)
                 
-                schema_file_name = f"schema_{schema_name}.xml"
+                schema_file_name = f"{schema_name}.xml"
                 with open(os.path.join(self.schema_path, schema_file_name), "w") as f:
                     f.write(builder.generate_xml())
 

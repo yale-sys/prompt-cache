@@ -4,20 +4,26 @@ from xml.dom import minidom
 class XMLSchemaBuilder:
     def __init__(self, schema_name):
         self.schema = Element('schema', name=schema_name)
+        self.user = None
         self.user_union = None
 
     def set_system_description(self, description):
         system = SubElement(self.schema, 'system')
         system.text = description
 
-    def set_user_description(self, description):
-        user = SubElement(self.schema, 'user')
-        user.text = description
-        self.user_union = SubElement(user, 'union', scaffold="DOC")
+    def set_user_description(self, description, user_union=False):
+        self.user = SubElement(self.schema, 'user')
+        self.user.text = description
+        if user_union:
+            self.user_union = SubElement(self.user, 'union', scaffold="DOC")
 
-    def add_document_module(self, module_name, content):
+    def add_document_module_union(self, module_name, content):
         assert self.user_union is not None
         module = SubElement(self.user_union, 'module', name=module_name)
+        module.text = content.replace('\n', '\\n').replace("'", "\'").replace('"', '\"')
+
+    def add_document_module(self, module_name, content):
+        module = SubElement(self.user, 'module', name=module_name)
         module.text = content.replace('\n', '\\n').replace("'", "\'").replace('"', '\"')
 
     def set_assistant_description(self, description):

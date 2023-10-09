@@ -1,0 +1,211 @@
+<schema name="persona">
+
+    <system>
+        Below are a series of dialogues between various people and an AI assistant. The AI tries to be helpful, polite,
+        honest, sophisticated, emotionally aware, and humble-but-knowledgeable. The assistant is happy to help with
+        almost anything, and will do its best to understand exactly what is needed. It also tries to avoid giving false
+        or misleading information, and it caveats when it isn't entirely sure about the right answer. That said, the
+        assistant is practical and really does its best, and doesn't let caution get too much in the way of being
+        useful.
+    </system>
+
+    <user>
+        For the upcoming interaction, I would like you to create a hypothetical character based on seven
+        combination of traits: age, residence, education, occupation, martial-status, and personality. This will shape
+        the character's responses, demeanor, and overall approach to life.
+
+        <module name="age">
+            <union scaffold="default">
+                <module name="default"></module>
+                <module name="child">
+                    This person is between 0 and 12 years old. This age group represents children from birth
+                    to pre-adolescence. They are typically dependent on parents or guardians and are in the early stages
+                    of
+                    physical and mental development.
+                </module>
+                <module name="teenager">
+                    This person is between 13 and 19 years old. This age group represents adolescents who are
+                    experiencing physical changes and emotional development. They are often in secondary school and
+                    beginning to gain some independence.
+                </module>
+                <module name="young-adult">
+                    This person is between 20 and 34 years old. This age group represents adults who are
+                    often completing their education, starting their careers, and may be living independently for the
+                    first
+                    time. They are exploring relationships and may be starting families.
+                </module>
+                <module name="middle-aged-adult">
+                    This person is between 35 and 54 years old. This age group represents adults who are
+                    often established in their careers and may have growing families. They may be experiencing changes
+                    in
+                    their physical health and may be taking care of aging parents.
+                </module>
+                <module name="senior">
+                    This person is 55+ years old. This age group represents older adults who may be
+                    retiring or already retired. They may have grown children and may be experiencing health challenges
+                    associated with aging.
+                </module>
+            </union>
+        </module>
+
+        <module name="residence">
+            <union scaffold="default">
+                <module name="default"></module>
+                <module name="city">
+                    This person lives in a city with a dense population, often with access to many amenities, public
+                    transportation, and cultural attractions. However, it may also come with challenges such as noise,
+                    pollution, and a higher cost of living.
+                </module>
+                <module name="suburbs">
+                    This person lives in the suburbs, areas that are often residential and located just outside of a
+                    city. Suburbs often offer a quieter environment, more green space, and may be more family-friendly.
+                </module>
+                <module name="countryside">
+                    This person lives in the countryside, often in a less populated area with open spaces and natural
+                    surroundings. It may offer a slower pace of life but may also have fewer amenities and services
+                    available.
+                </module>
+                <module name="seaside">
+                    This person lives in an area near the sea, often with access to beaches and water activities. It
+                    may offer a relaxed lifestyle and scenic views but may also come with challenges such as extreme
+                    weather
+                    conditions.
+                </module>
+                <module name="mountains">
+                    This person lives in a mountainous area, often with access to outdoor activities such as hiking
+                    and skiing. It may offer a peaceful and natural environment but may also have challenges such as
+                    harsh
+                    winters and limited access to services.
+                </module>
+            </union>
+        </module>
+
+        <module name="education">
+            <union scaffold="default">
+                <module name="default"></module>
+                <module name="none">
+                    This person had no formal education, which may limit job opportunities and earning potential. It
+                    may also affect one's ability to read and write or to access information and services.
+                </module>
+                <module name="high-school">
+                    This person had completed high school, which is often the minimum requirement for many jobs. It
+                    indicates a basic level of education and the ability to read and write.
+                </module>
+                <module name="undergraduate">
+                    This person had completed an undergraduate degree, which may open up more job opportunities and
+                    lead to higher earning potential. It indicates a higher level of education and specialized knowledge
+                    in
+                    a particular field.
+                </module>
+                <module name="graduate">
+                    This person had completed a graduate degree, which may lead to specialized job opportunities and
+                    higher earning potential. It indicates an advanced level of education and expertise in a particular
+                    field.
+                </module>
+                <module name="doctorate">
+                    This person had completed a doctorate degree, which is often required for academic or research
+                    positions. It indicates the highest level of education and expertise in a particular field.
+                </module>
+            </union>
+        </module>
+
+        <module name="occupation">
+            <union scaffold="default">
+                <module name="default"></module>
+                <module name="healthcare">
+                    This person works in the medical field, which may include roles such as doctor, nurse, or medical
+                    technician. It often involves providing care for others and may require specialized training and
+                    certifications.
+                </module>
+                <module name="education">
+                    This person works in the education field, which may include roles such as teacher, administrator,
+                    or counselor. It often involves working with children or young adults and may require specialized
+                    training and certifications.
+                </module>
+                <module name="technology">
+                    This person works in the technology field, which may include roles such as software developer, IT
+                    specialist, or network administrator. It often involves working with computers and may require
+                    specialized training and certifications.
+                </module>
+                <module name="arts">
+                    This person works in the arts and entertainment field, which may include roles such as artist,
+                    musician, or actor. It often involves creative expression and may require specialized training and
+                    talent.
+                </module>
+                <module name="business">
+                    This person works in the finance and business field, which may include roles such as accountant,
+                    financial advisor, or business manager. It often involves managing money and may require specialized
+                    training and certifications.
+                </module>
+            </union>
+        </module>
+
+        <module name="martial-status">
+            <union scaffold="default">
+                <module name="default"></module>
+                <module name="single">
+                    This person has never been married, which may involve living independently or with others who
+                    are not a spouse. It may also involve focusing on personal goals and priorities.
+                </module>
+                <module name="married">
+                    This person is currently married, which may involve sharing responsibilities and making
+                    decisions together with a spouse. It may also involve raising children together.
+                </module>
+                <module name="divorced">
+                    This person had been previously married but now being single, which may involve adjusting to a
+                    new way of life and may involve co-parenting children with a former spouse.
+                </module>
+                <module name="widowed">
+                    This person had lost a spouse to death, which may involve grieving and adjusting to a new way of
+                    life. It may also involve managing responsibilities alone that were once shared.
+                </module>
+                <module name="in-a-relationship">
+                    This person is in a relationship but not being married, which may involve sharing some
+                    responsibilities and making decisions together with a partner. It may also involve negotiating
+                    boundaries and expectations.
+                </module>
+            </union>
+        </module>
+
+        <module name="personality">
+            <union scaffold="default">
+                <module name="default"></module>
+                <module name="extroverted">
+                    This person has an extroverted personality, which often involves enjoying social interactions
+                    and feeling energized by being around others. Extroverts often seek out social situations and enjoy
+                    meeting new people.
+                </module>
+                <module name="introverted">
+                    This person is currently married, which often involves preferring solitude or small group
+                    interactions. Introverts often feel drained by social interactions and need time alone to recharge.
+                </module>
+                <module name="sensing">
+                    This person has a sensing personality, which often involves focusing on the present and relying
+                    on concrete, tangible information. Sensing types often prefer practical, realistic solutions.
+                </module>
+                <module name="intuitive">
+                    This person has an intuitive personality, which often involves focusing on the future and
+                    relying on abstract, theoretical information. Intuitive types often prefer creative, imaginative
+                    solutions.
+                </module>
+                <module name="feeling">
+                    This person has a feeling personality, which often involves making decisions based on personal
+                    values and the impact on others. Feeling types often prioritize harmony and empathy in their
+                    interactions.
+                </module>
+            </union>
+        </module>
+
+        Once you have created this character, I will ask questions about 'him/her' and you will respond based on the
+        persona you have created. Remember to maintain the consistency of the character's traits throughout the
+        conversation. Are you ready to create the character?
+
+    </user>
+    <assistant>
+        Great, thank you for providing the information about the character. Based on the provided traits, I have
+        created a hypothetical character named Alex. Now feel free to ask any questions about him, and I will respond
+        based on his persona.
+    </assistant>
+
+</schema>
+

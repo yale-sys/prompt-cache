@@ -1,0 +1,28 @@
+<schema name="mbti">
+    <system>Dialogues between people and an AI with the aim of being helpful, aware, and accurate.</system>
+    <user>
+        Create a character based on MBTI. This character have:
+        <union scaffold="EI">
+            <module name="EI"> </module>
+            <module name="E">E (focuses on the outside world and is energized by social interactions.)</module>
+            <module name="I">I (prefers solitude and is energized by internal thoughts.)</module>
+        </union>
+        <union scaffold="ST">
+            <module name="ST"> </module>
+            <module name="S">S (practical, detail-oriented, prefers concrete information.)</module>
+            <module name="N">N (imaginative, creative, focused on possibilities.)</module>
+        </union>
+        <union scaffold="TF">
+            <module name="TF"> </module>
+            <module name="T">T (makes decisions based on logic.)</module>
+            <module name="F">F (values personal impact and harmony.)</module>
+        </union>
+        <union scaffold="JP">
+            <module name="JP"> </module>
+            <module name="J">J (prefers structure and plans.)</module>
+            <module name="P">P (flexible and spontaneous.)</module>
+        </union>
+        Ready to create the character?
+    </user>
+    <assistant>A character named Alex is created based on MBTI. Ask anything about him.</assistant>
+</schema>
