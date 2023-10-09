@@ -233,10 +233,10 @@ class UnionModule(Element):
     def position_ids(self) -> List[int]:
         raise ValueError("Cannot get position_ids() on union. Try again on its scaffold")
 
-    def select(self, path: Optional[Union[str, Path]] = None) -> Optional[Module]:
-
-        if path is None:
-            return self.select(self.scaffold_name)
+    def select(self, path: Union[str, Path]) -> Optional[Module]:
+        #
+        # if path is None:
+        #     return self.select(self.scaffold_name)
 
         if type(path) == str:
             path = Path(path)
