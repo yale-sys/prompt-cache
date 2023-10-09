@@ -360,6 +360,14 @@ class CacheEngine:
             return None
         return self.schemas[name].schema
 
+    def remove_schema(self, name: str):
+        if name not in self.schemas:
+            raise ValueError(f'There is no such schema named {name} in the cache')
+
+        del self.schemas[name]
+        gc.collect()
+        torch.cuda.empty_cache()
+
     def process(self, prompt: Prompt, no_cache: bool = False, return_full_position_ids: bool = False) -> Tuple[
         List[int], List[int], Optional[KVCache]]:
 
