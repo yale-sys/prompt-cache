@@ -2,9 +2,20 @@
 
 # * Required API
 #     * init() : download (one time) and load the dataset to run; do any preprocessing required for running this benchmark
-#     * get_documents(): return a list of the paths that need to be cached (the xml files)
-#     * get_next_query(): return query id (unsigned), query (string), and chosen modules (a list of string)
-#     * evaluate(query_id, response_from_llm): return score in [0,1] per query
+#     * get_entry_count(): return the number of entries in the dataset.
+#     * get_query(): return a list of Entry objects for the given range.
+
+class Entry:
+    def __init__(self, schema, prompt, answer=None):
+        """
+        Constructor to initialize any required variables.
+        [schema: str] path to the schema file, usage: cache_engine.add_schema(read_file(schema, preproc))
+        [prompt: str] prompt text, which I should feed to the llm directly, it contains the used schema name and the question from dataset
+        [answer: str] the answer to the above question
+        """
+        self.schema = schema
+        self.prompt = prompt
+        self.answer = answer
 
 class Benchmark:
     def __init__(self):
@@ -17,24 +28,20 @@ class Benchmark:
     def init(self):
         """
         Download (one time) and load the dataset to run; 
-        Do any preprocessing required for running this benchmark.
+        Preprocess the dataset to be organized in the `Entry` format.
         """
         raise NotImplementedError("This method should be overridden by subclass")
 
-    def get_documents(self) -> list:
+    def get_entry_count(self):
         """
-        Return a list of paths for XML files that need to be cached.
+        Return the number of entries in the dataset.
         """
         raise NotImplementedError("This method should be overridden by subclass")
 
-    def get_next_query(self) -> (int, str, list):
+    def get_query(self, range) -> [Entry]:
         """
-        Return query_id (unsigned), query (string), and chosen modules (a list of string).
-        """
-        raise NotImplementedError("This method should be overridden by subclass")
-        
-    def evaluate(self, query_id: int, response_from_llm: str) -> float:
-        """
-        Take query_id and response_from_llm as parameters and return a score in the range [0,1].
+        Return a list of Entry objects for the given range.
+        [range: (int, int)] the range of entries to return
         """
         raise NotImplementedError("This method should be overridden by subclass")
+

@@ -6,7 +6,7 @@ datasets = {}
 
 def load_documentation_summary():
     ## Summary dataset
-    datasets['multi_news'] = load_dataset('multi_news');
+    datasets['multi_news'] = load_dataset('multi_news')
     return datasets['multi_news']
     # print("Multi News\n", datasets['multi_news']['train'][0])
 

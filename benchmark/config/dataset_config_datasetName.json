@@ -1,6 +1,0 @@
-{
-    "name": "squad",
-    "max_ctx_length": 8192,
-    "schema_load_batch": 4,
-    "has_ground_truth": true
-}
