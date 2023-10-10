@@ -3,8 +3,8 @@ import fire
 import sys, json
 import os
 import datetime
-eval_path = os.path.abspath(os.path.dirname(__file__))
-sys.path.append(os.path.abspath(os.path.join(eval_path, '..')))
+# eval_path = os.path.abspath(os.path.dirname(__file__))
+# sys.path.append(os.path.abspath(os.path.join(eval_path, '..')))
 from promptcache.model import Llama2, Falcon, Mpt
 from transformers import (
     AutoTokenizer, LlamaForCausalLM, LlamaTokenizer,
@@ -12,8 +12,9 @@ from transformers import (
 from promptcache import Prompt, CompactSpaces, read_file, CacheEngine, \
     GenerationEngine, GenerationParameters, llama2_template
 
-from benchmark_base import Benchmark, Entry, DATASET_LIST, SCHEMA_FILE_DIRECTORY
-from squad_v2 import SquadV2
+from benchmark.benchmark_base import Benchmark, Entry, DATASET_LIST, SCHEMA_FILE_DIRECTORY
+from benchmark.squad_v2 import SquadV2
+from benchmark.multi_news import MultiNews
 
 BENCHMARK_PATH = "./benchmark"
 
@@ -57,8 +58,8 @@ class Eval():
             raise ValueError("Dataset name cannot be None, valid dataset names are: " + ", ".join(DATASET_LIST))
         elif "squad" in dataset:
             self.dataset = SquadV2()
-        elif "news" in dataset:
-            pass
+        elif "multi_news" in dataset:
+            self.dataset = MultiNews()
         elif "wiki" in dataset:
             pass
         elif "pubmed" in dataset:
@@ -76,7 +77,7 @@ class Eval():
 
     def store_results(self, results):
         if self.enable_cache:
-            prefix = "cache"
+            prefix = "with_cache"
         else:
             prefix = "no_cache"
         with open(os.path.join(self.result_directory, f"{prefix}_results.json"), "a") as f:
