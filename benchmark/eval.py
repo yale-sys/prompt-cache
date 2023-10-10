@@ -127,6 +127,8 @@ class Eval():
                 self.store_results(result)
                 print("\n")
 
+            self.cache_engine.remove_all_schemas()
+
 def main(llm_config_path: str=os.path.join(BENCHMARK_PATH, "config/llm_config_llama2.json"), dataset: str="squad_v2", enable_cache=False):
     eval = Eval(llm_config_path, dataset, enable_cache)
     eval.run()
