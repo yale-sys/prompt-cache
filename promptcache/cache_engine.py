@@ -369,6 +369,14 @@ class CacheEngine:
         gc.collect()
         torch.cuda.empty_cache()
 
+    def remove_all_schemas(self):
+
+        # remove all schemas
+        self.schemas = dict()
+
+        gc.collect()
+        torch.cuda.empty_cache()
+
     def process(self, prompt: Prompt, no_cache: bool = False, return_full_position_ids: bool = False) -> Tuple[
         List[int], List[int], float, Optional[KVCache]]:
 
