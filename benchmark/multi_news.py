@@ -37,9 +37,9 @@ class MultiNews(Benchmark):
         # Now we can generate xml files
         assert self.dataset is not None
         schema_file_name = "schema_summary_sample.xml"
-        self._generate_xml(os.path.join(self.schema_path, schema_file_name))
+        self._generate_xml()
 
-    def _generate_xml(self, xml_path, limit_entries=10):
+    def _generate_xml(self, limit_entries=10):
         # Generate xml files
         # - In this version, we build the xml file per entry
         count = 0
@@ -65,9 +65,6 @@ class MultiNews(Benchmark):
 
             # Set assistant reply
             builder.set_assistant_description(_document_assistant_description)
-
-            # Generate the XML string
-            xml_string = builder.generate_xml()
 
             # Write the XML string to a file
             schema_file_name = f"{schema_name}.xml"
