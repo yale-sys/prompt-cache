@@ -1,5 +1,5 @@
-from benchmark_base import Benchmark, Entry
-from utils import XMLSchemaBuilder
+from .benchmark_base import Benchmark, Entry
+from .utils import XMLSchemaBuilder
 from datasets import load_dataset
 import os
 

@@ -4,18 +4,13 @@ document_summary_path = os.path.abspath(os.path.dirname(__file__))
 sys.path.append(os.path.abspath(os.path.join(document_summary_path, '..')))
 
 import unittest
-from benchmark.document_summary import DocumentSummary
+from benchmark.multi_news import MultiNews
 
-## The following code is for testing the DocumentSummary class
-class TestDocumentSummary(unittest.TestCase):
+## The following code is for testing the MultiNews class
+class TestMultiNews(unittest.TestCase):
     def setUp(self):
-        self.document_summary = DocumentSummary()
+        self.document_summary = MultiNews()
         self.document_summary.init(verbose=False)
-
-    def test_get_documents(self):
-        doc_to_cache = self.document_summary.get_documents()
-        for file in doc_to_cache:
-            self.assertTrue(os.path.exists(file))
 
     def test_get_next_query(self):
         query_id, query, modules = self.document_summary.get_next_query()

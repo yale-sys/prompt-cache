@@ -44,7 +44,7 @@ class Benchmark:
         if not os.path.exists(self.schema_path):
             os.makedirs(self.schema_path)
 
-    def init(self):
+    def init(self, limit_entries=None):
         """
         Download (one time) and load the dataset to run; 
         Preprocess the dataset to be organized in the `Entry` format.
