@@ -1,7 +1,7 @@
 import gc
 import time
 from dataclasses import dataclass, field
-from typing import Optional, Generator, List
+from typing import Optional, Generator, List, Tuple
 
 import torch
 
@@ -54,6 +54,7 @@ def is_partial_stop(output: str, stop_str: str):
 class Output:
     text: str
     new_text: str
+    response_time: float = 0.0
     elapsed_time: float = 0.0
 
 
@@ -84,6 +85,7 @@ class GenerationEngine:
         new_token_id = 0
 
         inference_time = 0.0
+        response_time = 0.0
 
         position_ids_og = position_ids
 
@@ -111,7 +113,7 @@ class GenerationEngine:
                 end.record()
                 torch.cuda.synchronize()
                 inference_time += start.elapsed_time(end)
-
+                response_time = inference_time
                 print(f'Response time: {inference_time:.2f} ms')
 
                 logits = out.logits
@@ -178,7 +180,7 @@ class GenerationEngine:
                             break
 
                 if not partially_stopped:
-                    yield Output(output, new_output, inference_time)
+                    yield Output(output, new_output, inference_time, response_time)
 
             if stopped:
                 break

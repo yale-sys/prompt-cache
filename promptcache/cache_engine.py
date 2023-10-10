@@ -106,7 +106,7 @@ class PromptCache:
              torch.empty(num_head, max_ctx_length, head_dim, device=device, dtype=torch.half)) for _ in
             range(num_layers)]
 
-        print(num_head, max_ctx_length, head_dim)
+        # print(num_head, max_ctx_length, head_dim)
 
         # stores staged modules
         self.staged = []
@@ -266,6 +266,7 @@ class SchemaCache:
                     target = scaffold.select(path)
 
                     for tc in target.all_token_sequences():
+
                         offset = tc.offset
                         length = len(tc)
 
@@ -360,8 +361,16 @@ class CacheEngine:
             return None
         return self.schemas[name].schema
 
+    def remove_schema(self, name: str):
+        if name not in self.schemas:
+            raise ValueError(f'There is no such schema named {name} in the cache')
+
+        del self.schemas[name]
+        gc.collect()
+        torch.cuda.empty_cache()
+
     def process(self, prompt: Prompt, no_cache: bool = False, return_full_position_ids: bool = False) -> Tuple[
-        List[int], List[int], Optional[KVCache]]:
+        List[int], List[int], float, Optional[KVCache]]:
 
         start = torch.cuda.Event(enable_timing=True)
         end = torch.cuda.Event(enable_timing=True)
@@ -464,13 +473,14 @@ class CacheEngine:
 
             vv = list(range(len(orig_position_ids)))
 
-            return orig_input_ids, vv, None
+            return orig_input_ids, vv, cache_time, None
         else:
 
             used_seq_caches = []
 
             for s in used_sequences:
                 seq_cache = cached.get_cache_l1(s)
+
                 seq_cache.inc_usage_counter()
                 used_seq_caches.append(seq_cache)
 
@@ -492,4 +502,4 @@ class CacheEngine:
                 position_ids = orig_position_ids + position_ids
 
             # print(orig_position_ids)
-            return input_ids, position_ids, cache
+            return input_ids, position_ids, cache_time, cache
