@@ -1,8 +1,0 @@
-{
-    "dataset_sizes":
-    {
-        "small": 10,
-        "medium": 1000,
-        "large": 100000
-    }
-}
