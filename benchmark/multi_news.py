@@ -84,15 +84,7 @@ class MultiNews(Benchmark):
             self.entries.append(Entry(schema_file_name, prompt, summary_str))
 
             count += 1
-        # Write the XML string to a file
-        # - check the file path and make sure it is valid
-        if not os.path.exists(os.path.dirname(xml_path)):
-            os.makedirs(os.path.dirname(xml_path))
-        if os.path.exists(xml_path):
-            os.remove(xml_path)
-        with open(f"{xml_path}", "w") as f:
-            f.write(xml_string)
-        pass
+
 
     def get_next_query(self):
         """
