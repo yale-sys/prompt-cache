@@ -13,7 +13,6 @@ _document_schema_name = "document_summary"
 _document_header = "Document"
 _document_dataset = "train"
 _document_system_description = "Dialogues between a user and an AI about the document provided by the user with the aim of being helpful, aware, and accurate."
-_document_user_description = "Summarize the following document in around five sentences:"
 _document_assistant_description = "Sure. I have read the document. give me any instructions regarding summarization, and I will try to follow them."
 _document_user_summary = "Summarize the above document in around THREE sentences:"
 
