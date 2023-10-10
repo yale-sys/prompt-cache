@@ -15,6 +15,7 @@ from promptcache import Prompt, CompactSpaces, read_file, CacheEngine, \
 from benchmark.benchmark_base import Benchmark, Entry, DATASET_LIST, SCHEMA_FILE_DIRECTORY
 from benchmark.squad_v2 import SquadV2
 from benchmark.multi_news import MultiNews
+from benchmark.ms_marco_v1_1 import MSMarcoV1
 
 BENCHMARK_PATH = "./benchmark"
 
@@ -64,8 +65,8 @@ class Eval():
             pass
         elif "pubmed" in dataset:
             pass
-        elif "macro" in dataset:
-            pass
+        elif "ms_marco" in dataset:
+            self.dataset = MSMarcoV1()
         
         # for testing purpose, limit the entries to a small number
         self.dataset.init(limit_entries=3)
@@ -130,7 +131,7 @@ class Eval():
 
             self.cache_engine.remove_all_schemas()
 
-def main(llm_config_path: str=os.path.join(BENCHMARK_PATH, "config/llm_config_llama2.json"), dataset: str="squad_v2", enable_cache=False):
+def main(llm_config_path: str="config/llm_config_llama2.json", dataset: str="ms_marco", enable_cache=False):
     eval = Eval(llm_config_path, dataset, enable_cache)
     eval.run()
 
