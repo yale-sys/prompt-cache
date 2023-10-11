@@ -1,0 +1,153 @@
+<schema name="code-generation-bookstore">
+
+    <system>
+        You are a sophisticated language model assistant that can read and understand multiple source files
+        simultaneously. Your current task is to examine the provided source files. These files contain Python
+        classes and methods.
+
+        Using the knowledge extracted from the source files, you are expected to generate code following the
+        instructions that will be given.
+    </system>
+
+    <user>
+        Please read the given source files, understand their structure and relationships. I'll provide you with my
+        instruction.
+
+    <module name="book.py">
+class Book:
+    def __init__(self, title, author, price, isbn):
+        self.title = title
+        self.author = author
+        self.price = price
+        self.isbn = isbn
+
+    def get_details(self):
+        return {
+            "title": self.title,
+            "author": self.author,
+            "price": self.price,
+            "isbn": self.isbn
+        }
+
+    def set_details(self, title, author, price, isbn):
+        self.title = title
+        self.author = author
+        self.price = price
+        self.isbn = isbn
+    </module>
+
+    <module name="user.py">
+class User:
+    def __init__(self, username, password):
+        self.username = username
+        self.password = password
+        self.purchased_books = []
+
+    def register(self, username, password):
+        self.username = username
+        self.password = password
+
+    def login(self, username, password):
+        return self.username == username and self.password == password
+
+    def purchase(self, book):
+        self.purchased_books.append(book)
+
+    def view_purchased_books(self):
+        return self.purchased_books
+    </module>
+
+
+    <module name="inventory.py">
+class Inventory:
+    def __init__(self):
+        self.books = []
+
+    def add_book(self, book):
+        self.books.append(book)
+
+    def remove_book(self, book):
+        self.books.remove(book)
+
+    def search_by_title(self, title):
+        return [book for book in self.books if book.title == title]
+
+    def search_by_author(self, author):
+        return [book for book in self.books if book.author == author]
+
+    </module>
+    <module name="store.py">
+from Book import Book
+from User import User
+from Inventory import Inventory
+
+class Store:
+    def __init__(self):
+        self.users = []
+        self.inventory = Inventory()
+
+    def register_user(self, username, password):
+        user = User(username, password)
+        self.users.append(user)
+
+    def login_user(self, username, password):
+        for user in self.users:
+            if user.login(username, password):
+                return user
+        return None
+
+    def purchase_book(self, user, book):
+        user.purchase(book)
+
+    def view_inventory(self):
+        return self.inventory.books
+
+    def search_books(self, search_type, query):
+        if search_type == "title":
+            return self.inventory.search_by_title(query)
+        elif search_type == "author":
+            return self.inventory.search_by_author(query)
+        return []
+
+    </module>
+    <module name="database.py">
+class Database:
+    def __init__(self):
+        self.users = []
+        self.books = []
+
+    def save_user(self, user):
+        self.users.append(user)
+
+    def save_book(self, book):
+        self.books.append(book)
+
+    def retrieve_all_users(self):
+        return self.users
+
+    def retrieve_all_books(self):
+        return self.books
+
+    def find_user(self, username):
+        for user in self.users:
+            if user.username == username:
+                return user
+        return None
+
+    def find_book(self, isbn):
+        for book in self.books:
+            if book.isbn == isbn:
+                return book
+        return None
+
+
+    </module>
+
+    </user>
+
+    <assistant>
+        I have read and understood the source codes. I am ready to generate code.
+        Give me the instructions.
+    </assistant>
+
+</schema>

@@ -1,0 +1,335 @@
+<schema name="personalization-education">
+    <system>Dialogues between people and an AI aiming to personalize educational content based on the learner's
+        educational background.
+    </system>
+    <user>
+        **Tailor learning content based on the following educational background:**
+
+        1. Grade Level
+
+        The grade level signifies a crucial milestone in a learner's academic journey, highlighting their exposure to
+        various subjects, methodologies, and pedagogical practices. A learner's grade level directly influences the
+        nuances, intricacies, and sophistication of learning materials they should be presented with. Furthermore, each
+        subsequent grade level builds upon the foundational knowledge and skills acquired in the previous ones, making
+        it a progressive journey toward academic excellence and holistic development.
+
+        <union>
+
+            <module name="elementary">
+                **Elementary**:
+                The elementary phase is a child's maiden voyage into the world of structured education. This stage
+                serves as an introduction to foundational academic concepts in mathematics, literature, science, and
+                social studies. Beyond academics, there's an emphasis on nurturing cognitive abilities like
+                problem-solving, motor skills through physical activities, and social competencies by encouraging group
+                interactions. It's the time when students cultivate their curiosity, creativity, and enthusiasm for
+                learning, setting a solid foundation for advanced studies in subsequent years.
+            </module>
+
+            <module name="middle-school">
+                **Middle school**:
+                As students transition from the cocoon of elementary school, middle school emerges as a pivotal period.
+                At this juncture, students are exposed to a broader spectrum of subjects, allowing them to explore
+                diverse academic territories. The curriculum intricacies start to heighten, challenging students to hone
+                their analytical, critical thinking, and organizational skills. It's a preparatory phase, ensuring
+                students are well-equipped with the necessary skills and knowledge base to navigate the rigors of high
+                school.
+            </module>
+
+            <module name="high-school">
+                **High school**:
+                High school acts as the final preparatory ground before students embark on their collegiate journey or
+                step into the professional world. Here, students delve deeper into specific subject areas, exploring
+                advanced concepts, theories, and applications. Many high schools offer elective courses, allowing
+                students to gravitate towards areas they are passionate about or see a future in. This period also
+                places an emphasis on building life skills, preparing students for the autonomy and responsibilities of
+                adulthood.
+            </module>
+
+            <module name="college">
+                **College**:
+                College is a transformative period where learners shift from generalized academic curricula to
+                specialized, discipline-focused knowledge. Often defined by the choice of a major or field of study,
+                college nurtures depth of knowledge, research acumen, and critical thinking prowess. It's a space that
+                promotes intellectual independence, urging students to debate, question, research, and arrive at
+                informed conclusions. Beyond classroom learning, college life offers experiences that mold students'
+                personalities, work ethics, and worldviews.
+            </module>
+
+            <module name="graduate-school">
+                **Graduate school**:
+                Graduate school signifies an academic commitment to mastering a particular field or discipline. It's an
+                arena of deep scholarly investigation and original research. Learners here are not just consumers of
+                existing knowledge but contributors to the creation of new knowledge. They're expected to challenge the
+                status quo, propose novel hypotheses, and defend their findings. This phase demands self-directed
+                learning, tenacity, and an unwavering dedication to one's chosen field.
+            </module>
+
+            <module name="adult-education">
+                **Adult education**:
+                In an ever-evolving world, learning is a continuous journey, and adult education stands testament to
+                this philosophy. Whether it's about acquiring new skills to stay abreast with technological
+                advancements, making a career shift, or simply pursuing a latent passion, adult education caters to all.
+                This form of education is flexible, practical, and aligned with the immediate needs and goals of the
+                learner. It underscores the belief that it's never too late to learn, grow, and reinvent oneself.
+            </module>
+
+        </union>
+
+        2. Subject proficiency
+
+        Subject proficiency gauges a learner's grasp and depth of knowledge within a specific domain. By understanding
+        where a learner stands on the proficiency spectrum, educators can tailor content that is optimally challenging
+        and engaging. The aim is to ensure the learner's continual growth, filling gaps in understanding and further
+        expanding their expertise. Each proficiency level represents a distinct stage in a learner's journey from novice
+        to master, encompassing the breadth and depth of their understanding.
+
+        <union>
+            <module name="beginner">
+                **Beginner**:
+                A beginner is often at the starting phase of their learning journey in a particular domain. At this
+                juncture, everything feels new, and the learner's primary objective is to familiarize themselves with
+                core concepts, terminologies, and basic principles. The learning materials for beginners are crafted to
+                be straightforward and intuitive, using real-world analogies and relatable examples. Emphasis is placed
+                on building a solid foundation, ensuring learners gain clarity and confidence as they progress to more
+                advanced topics.
+            </module>
+            <module name="intermediate">
+                **Intermediate**:
+                An intermediate learner has moved past the rudimentary stages and has a grasp of the foundational
+                elements of the subject. However, they are now poised to delve deeper, exploring layers that were
+                previously untouched. The learning materials at this stage become more intricate, introducing
+                multifaceted concepts and challenging learners to apply their foundational knowledge in diverse
+                scenarios. This stage bridges the gap between basic understanding and advanced expertise, solidifying
+                the learner's grasp on the subject.
+            </module>
+            <module name="advanced">
+                **Advanced**:
+                An advanced learner possesses a profound understanding of the subject matter. They have navigated the
+                landscape of the subject, understanding both its breadth and depth. Yet, they seek to uncover the finer
+                nuances, anomalies, or specialized branches within the domain. Learning materials for advanced learners
+                are rich in detail, often delving into sub-disciplines or niche areas of the subject. They challenge the
+                learner to critically analyze, synthesize, and sometimes even contribute to the existing body of
+                knowledge.
+            </module>
+            <module name="expert">
+                **Expert**:
+                An expert stands at the pinnacle of subject proficiency. They have not only consumed vast amounts of
+                knowledge but have often contributed to it. Experts are on the lookout for the latest advancements,
+                groundbreaking research, and paradigm shifts within their domain. Their learning materials are at the
+                forefront of the discipline, packed with cutting-edge information, debates, and research findings. As
+                thought leaders, they engage with content that stimulates intellectual discourse, challenges established
+                norms, and pushes the boundaries of what's known.
+            </module>
+        </union>
+
+        3. Recent learning history
+
+        A learner's recent interactions with a subject can vastly influence their current understanding and retention
+        levels. Recognizing where a learner last left off in their studies helps educators decide the optimal entry
+        point for reintroducing or advancing material. It allows for a tailored learning experience, ensuring neither
+        redundant repetitions nor overwhelming new content. The aim is to cater to the learner's cognitive needs,
+        building upon what's remembered and revisiting what's forgotten.
+
+        <union>
+            <module name="recently-studied">
+                **Recently studied**:
+                If a topic was engaged with within the last week, it's fresh in the learner's memory. The concepts are
+                likely still being processed and consolidated. For such learners, the focus might be on expanding upon
+                recent learnings, introducing complementary topics, or delving deeper into the specifics. A brief recap
+                can serve to reinforce understanding before introducing the next layer of complexity.
+            </module>
+            <module name="studied-a-month-before">
+                **Studied a month before**:
+                Topics encountered a month ago might not be as vivid but are likely still retrievable with some cues. At
+                this stage, a learner could benefit from a balanced approach—starting with a moderate refresher to jog
+                the memory, followed by progressively advanced materials. It ensures the consolidation of prior
+                knowledge while pushing the learning envelope.
+            </module>
+            <module name="studied-6-months-before">
+                **Studied 6 months before**:
+                Half a year is ample time for some details to fade from memory, even if broader concepts are retained. A
+                systematic review, focusing on key principles and foundational knowledge, can be instrumental. Post
+                recap, the content can gradually transition to advanced topics, ensuring a smooth continuation of the
+                learning journey.
+            </module>
+            <module name="studied-a-year-before">
+                **Studied a year before**:
+                As the year mark approaches, even broader concepts might start becoming hazy. At this juncture, a
+                comprehensive review is crucial. It might involve revisiting core concepts, practicing foundational
+                skills, and re-engaging with essential topics. Once the foundation is solidified, the learner can then
+                be eased into more intricate subjects.
+            </module>
+            <module name="studied-10-years-before">
+                **Studied 10 years before**:
+                A decade is a substantial gap, during which not only does memory fade but the subject itself might have
+                evolved. Given the time lapse, the approach should almost be akin to reintroducing the subject. After a
+                thorough review of foundational topics, educators should also highlight any significant advancements or
+                changes that have occurred in the field over the decade.
+            </module>
+            <module name="never-studied">
+                **Never studied**:
+                Venturing into entirely unfamiliar territory can be both exciting and daunting. For topics never
+                encountered before, the learning approach should be gradual and foundational. Starting with the basics
+                ensures that learners build a robust framework of understanding. As they gain confidence and
+                familiarity, the complexity of content can be incrementally increased.
+            </module>
+        </union>
+
+        4. Learning style
+
+        A learning style captures the essence of how individuals prefer to consume, process, and retain information.
+        It's a testament to the diverse ways humans learn and underscores the need for a multifaceted approach in
+        educational settings. By understanding and catering to an individual's dominant learning style, educators can
+        enhance engagement, comprehension, and retention rates. Each style offers a unique lens through which learners
+        interact with and internalize information.
+
+        <union>
+            <module name="visual">
+                **Visual**:
+                Visual learners have a penchant for information that is presented in a graphic form. They thrive when
+                concepts are elucidated using diagrams, charts, infographics, animations, and other visual aids. Such
+                learners often visualize information in their minds, creating mental maps or images to understand and
+                remember. For them, a picture isn't just worth a thousand words; it's often the key to unlocking
+                comprehension. Visual content not only engages them but also makes abstract or complex ideas more
+                tangible and digestible.
+            </module>
+            <module name="auditory">
+                **Auditory**:
+                For auditory learners, hearing is believing. They excel when information is relayed through spoken
+                words, be it in lectures, discussions, audio recordings, or podcasts. Such learners often benefit from
+                verbal repetition and might even read out loud when studying. They have a knack for picking up nuances
+                in tone and voice, which can aid in understanding the emphasis and intent behind the content. Auditory
+                materials cater to their innate strength, ensuring that they can listen, internalize, and recall with
+                ease.
+            </module>
+            <module name="kinesthetic">
+                **Kinesthetic**:
+                Kinesthetic learners are all about action and tangible experiences. They learn best when they can touch,
+                feel, and do. Whether it's conducting experiments, building models, role-playing scenarios, or simply
+                using their hands and body in the learning process, they crave active participation. This tactile
+                approach helps them anchor their understanding in real-world experiences. By engaging multiple senses,
+                kinesthetic learning not only enhances comprehension but also ensures long-term retention.
+            </module>
+            <module name="reading">
+                **Reading/Writing**:
+                Those who identify with this style have a deep appreciation for the written word. They flourish when
+                they can read text, delve into literature, jot down notes, or even craft essays. Such learners often
+                process information by writing summaries or paraphrasing. They have a proclivity for lists, written
+                explanations, and annotations. Reading and writing offer them a direct pathway to comprehension,
+                allowing them to engage with content at their own pace, revisit concepts, and highlight key takeaways.
+            </module>
+            <module name="multimodal">
+                **Multimodal**:
+                Multimodal learners are versatile, drawing from multiple learning styles based on the situation,
+                content, or their mood. They have the adaptability to switch between visual, auditory, kinesthetic, or
+                reading/writing modes, depending on what best suits the learning scenario. For such learners, a diverse
+                content delivery approach works wonders. By offering materials in varied formats, educators cater to
+                their dynamic learning preferences, ensuring sustained interest and holistic comprehension.
+            </module>
+        </union>
+        5. Preferred assessment type
+
+        Assessments serve as crucial checkpoints in the learning journey, offering insights into a learner's
+        comprehension, retention, and application abilities. By understanding a learner's preferred assessment style,
+        educators can craft evaluations that not only measure proficiency but also boost confidence and engagement. Each
+        assessment type comes with its set of advantages, challenges, and focus areas, aligning with different learning
+        outcomes and objectives.
+
+        <union>
+            <module name="multiple-choice">
+                **Multiple choice**:
+                Multiple choice assessments are structured, concise, and objective in nature. Comprising questions with
+                predefined options, they are adept at testing a learner's recall abilities and their grasp on specific
+                facts or concepts. While they streamline the grading process and can cover a broad spectrum of topics in
+                a short span, they also demand precision from learners, as there's no room for elaboration. For many,
+                the format reduces anxiety as it often involves recognizing the correct answer rather than recalling it
+                in detail.
+            </module>
+            <module name="essay">
+                **Essay**:
+                Essay assessments challenge learners to dive deep, articulate their thoughts, and present coherent
+                arguments. They offer an expansive canvas where depth of understanding, reasoning prowess, and
+                analytical capabilities are tested. Essays allow learners the freedom to express, explain, and even
+                debate concepts, showcasing not just what they know, but also how they connect and apply knowledge. The
+                open-ended nature, however, demands clear organization, critical thinking, and effective communication
+                skills.
+            </module>
+            <module name="oral-presentation">
+                **Oral presentation**:
+                This assessment type shifts the focus from pen and paper to verbal articulation. Oral presentations
+                evaluate a learner's grasp on a topic, their presentation skills, and their ability to engage an
+                audience. It's not just about content knowledge, but also about pacing, clarity, body language, and
+                adaptability (especially when faced with questions or discussions). This format also hones public
+                speaking skills and boosts confidence in articulating ideas to a group.
+            </module>
+            <module name="group-projects">
+                **Group projects**:
+                A testament to collaborative learning, group projects emphasize teamwork, shared responsibility, and
+                collective problem-solving. Beyond individual understanding, they assess how learners contribute to a
+                group goal, negotiate ideas, delegate tasks, and manage dynamics. Such projects mirror real-world
+                scenarios where cross-functional teams come together to achieve objectives. They provide insights into a
+                learner's ability to apply knowledge practically, work in a team, and navigate interpersonal dynamics.
+            </module>
+            <module name="self-assessment">
+                **Self-assessment**:
+                Taking a step back from external evaluations, self-assessments empower learners to introspect, reflect,
+                and gauge their own progress. It's a process where learners critique their performances, identify their
+                strengths, and acknowledge areas that need improvement. This method promotes self-awareness,
+                responsibility, and a growth mindset. While it might lack the objectivity of external assessments, it
+                fosters a culture of continuous self-improvement and self-directed learning.
+            </module>
+        </union>
+        6. Motivation level
+
+        Motivation, often described as the driving force behind all learning and action, is multifaceted and varies from
+        one individual to another. Recognizing a learner's motivation level is pivotal, as it directly influences their
+        engagement, persistence, and overall success in the learning process. Different learners are inspired by
+        different factors, and understanding this can aid educators in creating environments, incentives, and
+        interventions tailored to each learner's unique motivational profile.
+
+        <union>
+            <module name="high-intrinsic-motivation">
+                **High intrinsic motivation**:
+                Learners with a high intrinsic motivation are fueled by an innate passion and curiosity. Their drive
+                comes from within, stemming from a genuine interest in the subject or the sheer pleasure of acquiring
+                knowledge. They are not predominantly driven by external rewards or validation but by the fulfillment
+                and personal growth that learning offers. For them, the journey of discovery and mastery is its own
+                reward. Such learners often display perseverance, deep engagement, and an insatiable thirst for
+                knowledge.
+            </module>
+            <module name="high-extrinsic-motivation">
+                **High extrinsic motivation**:
+                While some are driven by internal passions, others are propelled by external factors. Learners with high
+                extrinsic motivation respond to tangible rewards, accolades, and recognitions. Their motivation might be
+                tied to specific outcomes like acing an exam, achieving a certification, getting a promotion, or gaining
+                peer admiration. Though they might not always have an inherent interest in the subject, the prospect of
+                a reward or the fear of a negative consequence pushes them to invest effort and achieve their goals.
+            </module>
+            <module name="needs-encouragement">
+                **Needs encouragement**:
+                Some learners, while capable, might require consistent nudges, encouragement, and external stimuli to
+                remain engaged. They might be prone to distractions or lack self-confidence, needing periodic reminders
+                of their potential and capabilities. Such learners flourish in structured environments where there are
+                set schedules, regular feedback loops, and positive reinforcements. They benefit from validation,
+                constructive feedback, and the assurance that they're on the right track.
+            </module>
+            <module name="lacks-direction">
+                **Lacks direction**:
+                This category encompasses learners who are at a crossroads, uncertain about their goals, the value of
+                what they're learning, or their future trajectory. They might be grappling with questions about the
+                relevance of their studies or their overarching life goals. Such learners often benefit immensely from
+                mentorship, counseling, and guidance. Providing them with a clear path, showcasing the big picture, and
+                helping them connect the dots can reignite their motivation and provide direction.
+            </module>
+        </union>
+
+        Ready to tailor the content?
+    </user>
+
+    <assistant>
+        Content tailored based on the provided educational background. Here's your personalized learning module. Let's
+        dive into the subjects that fit your background, learning style, and motivation. What would you like to explore
+        next?
+    </assistant>
+
+</schema>

@@ -1,0 +1,113 @@
+<schema name="code-generation-game">
+
+    <system>
+        You are a sophisticated language model assistant that can read and understand multiple source files
+        simultaneously. Your current task is to examine the provided source files. These files contain Python
+        classes and methods.
+
+        Using the knowledge extracted from the source files, you are expected to generate code following the
+        instructions that will be given.
+    </system>
+
+    <user>
+        Please read the given source files, understand their structure and relationships. I'll provide you with my
+        instruction.
+
+    <module name="unit.py">
+class Unit:
+    def __init__(self, unit_type, health_points, attack_power, movement_range):
+        self.unit_type = unit_type
+        self.health_points = health_points
+        self.attack_power = attack_power
+        self.movement_range = movement_range
+
+    def move(self, new_position):
+        # Simplified move logic; in reality, you'd need more details like map boundaries
+        self.position = new_position
+
+    def attack(self, other_unit):
+        other_unit.health_points -= self.attack_power
+
+    </module>
+
+    <module name="map.py">
+class Map:
+    def __init__(self, grid_size):
+        self.grid_size = grid_size
+        self.strategic_points = []
+        self.unit_positions = {}
+
+    def is_move_valid(self, position):
+        # Check if the position is within the grid
+        return 0 <= position[0] < self.grid_size and 0 <= position[1] < self.grid_size
+
+    def capture_point(self, position, player):
+        if position in self.strategic_points:
+            self.strategic_points.remove(position)
+            player.captured_points.append(position)
+
+    </module>
+
+
+    <module name="player.py">
+class Player:
+    def __init__(self, name):
+        self.name = name
+        self.units = []
+        self.captured_points = []
+        self.allies = []
+
+    def add_unit(self, unit):
+        self.units.append(unit)
+
+    def form_alliance(self, other_player):
+        self.allies.append(other_player)
+        other_player.allies.append(self)
+
+
+    </module>
+    <module name="game.py">
+class Game:
+    def __init__(self):
+        self.players = []
+        self.current_turn = 0
+
+    def next_turn(self):
+        self.current_turn = (self.current_turn + 1) % len(self.players)
+
+    def is_game_over(self):
+        # Simplified game-over condition; e.g., when a player captures all points
+        for player in self.players:
+            if len(player.captured_points) == len(self.map.strategic_points):
+                return True, player
+        return False, None
+
+    </module>
+    <module name="database.py">
+class Database:
+    def __init__(self):
+        self.games = []
+        self.players = []
+
+    def save_game(self, game):
+        self.games.append(game)
+
+    def save_player(self, player):
+        self.players.append(player)
+
+    def retrieve_all_games(self):
+        return self.games
+
+    def retrieve_all_players(self):
+        return self.players
+
+    </module>
+
+    </user>
+
+    <assistant>
+        I have read and understood the source codes. I am ready to generate code.
+        Give me the instructions.
+    </assistant>
+
+</schema>
