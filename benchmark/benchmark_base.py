@@ -7,13 +7,13 @@
 import os
 
 SCHEMA_FILE_DIRECTORY = "./benchmark/schema"
-DATASET_LIST = ["squad_v2", "multi_news", "wiki_qa", "pubmed_qa", "ms_macro"]
+DATASET_LIST = ["squad_v2", "multi_news", "wiki_qa", "pubmed_qa", "ms_marco"]
 DATASET_SUBSET = {
     "multi_news": None,
     "squad_v2": None,
     "wiki_qa": None,
     "pubmed_qa": ["pqa_artificial", "pqa_labeled", "pqa_unlabeled"],
-    "ms_macro": ["v1.1", "v2.1"]
+    "ms_marco": ["v1.1", "v2.1"]
 }
 
 class Entry:

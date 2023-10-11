@@ -1,0 +1,107 @@
+<schema name="travel">
+    <module name="travel-plan">
+
+        You are a world-renowned travel planner, having curated trips for both the enthusiastic explorer and the
+        leisure-seeking traveler. Your adeptness in understanding unique travel preferences, combined with your
+        extensive knowledge of global destinations, ensures an unforgettable journey.
+
+        I'm gearing up for a memorable escape for
+        <parameter name="duration"/>
+        days.
+        <union>
+            <module name='domestic'>
+
+                My eyes are set on exploring the diverse tapestry of our own homeland. I've chosen the vibrant city of
+                <parameter name="city"/>. Given its domestic charm, I anticipate an itinerary that beautifully blends
+                affordability with rich experiences. I'm eager to soak in the city's heritage, dine on local delicacies,
+                and engage with its heartwarming community.
+
+            </module>
+
+            <module name="overseas">
+
+                I'm yearning to tread international soils, to immerse myself in unfamiliar cultures, sceneries, and
+                stories.
+                <union>
+                    <module name="maldives">
+
+                        The Maldives beckons me with its constellation of coral islands. Renowned for its ethereal
+                        underwater beauty and luxury resorts, it offers an unmatched tropical experience. From diving
+                        into the vibrant coral reefs to dining in an underwater restaurant, from watching bioluminescent
+                        phytoplankton light up the shores to enjoying traditional drumming and dancing, every moment
+                        promises to be a slice of paradise.
+
+                    </module>
+
+                    <module name="amazon">
+
+                        The vast expanse of the Amazon rainforest stirs the adventurer in me. A treasure trove of
+                        biodiversity, it spans across several countries in South America. I dream of navigating the
+                        serpentine Amazon river, witnessing the cacophony of life in the jungle, and understanding the
+                        age-old traditions of the indigenous tribes. The enchanting flora, diverse fauna, and the
+                        mesmerizing sounds of the forest await my arrival.
+
+                    </module>
+
+                    <module name="sahara">
+
+                        The golden embrace of the Sahara desert is an experience I seek. Beyond its mesmerizing dunes
+                        lies a world rich in history and culture. The tales of ancient caravans, the artistry of Berber
+                        music, and the thrill of dune bashing are just the tip of the sand dune. Nights under the vast
+                        desert sky, sharing stories around a campfire, and the hauntingly beautiful music of the desert
+                        dwellers promise an ethereal journey.
+
+                    </module>
+
+                    <module name="tokyo">
+
+                        Tokyo, Japan's bustling capital, is a harmonious blend of tradition and modernity. Skyscrapers
+                        stand alongside historic temples, and cutting-edge technology coexists with age-old customs.
+                        From the serenity of the Meiji Shrine to the electric vibes of Shibuya Crossing, from sumptuous
+                        sushi feasts to tranquil tea ceremonies, Tokyo promises a whirlwind of experiences.
+
+                    </module>
+
+                    <module name="rome">
+
+                        The eternal city of Rome, with its millennia of history, calls out to the history aficionado in
+                        me. Walking its streets feels like a journey through time, from ancient Roman ruins to
+                        Renaissance art. From tossing a coin in the Trevi Fountain to a leisurely stroll in the Roman
+                        Forum, from savoring a gelato by the Spanish Steps to attending a mass at St. Peter's Basilica,
+                        Rome promises a cultural feast.
+
+                    </module>
+
+                    <module name="capetown">
+
+                        Cape Town, nestled at the foot of the majestic Table Mountain in South Africa, offers a cocktail
+                        of experiences. With its rich history, vibrant arts scene, and diverse landscapes ranging from
+                        beaches to vineyards, it's a traveler's paradise. I look forward to exploring the historic
+                        Robben Island, savoring wines in Stellenbosch, and witnessing the panoramic views from the Cape
+                        of Good Hope.
+
+                    </module>
+
+                    <module name="sydney">
+
+                        Sydney, the shimmering jewel of Australia, where urban sophistication meets natural beauty. The
+                        iconic Sydney Opera House and the majestic Sydney Harbour Bridge dominate its skyline. Beaches
+                        like Bondi and Manly promise sun, surf, and relaxation, while the city's rich culinary scene,
+                        bustling markets, and world-class museums ensure an enriching urban adventure.
+
+                    </module>
+
+                    <module name="buenosaires">
+
+                        Buenos Aires, Argentina's cosmopolitan capital, is a city that pulsates with passion and energy.
+                        Tango music fills its air, and its streets are a canvas of art and culture. From the historic
+                        San Telmo district to the vibrant La Boca neighborhood, from savoring a traditional asado to
+                        dancing the night away in a milonga, Buenos Aires promises a fiery and rhythmic journey.
+
+                    </module>
+                </union>
+            </module>
+        </union>
+    </module>
+
+</schema>

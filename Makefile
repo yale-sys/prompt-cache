@@ -3,6 +3,7 @@
 LLM_CONFIG_PATH ?= ./config/llm_config_llama2.json
 DATASET ?= squad_v2
 # DATASET ?= multi_news
+# DATASET ?= ms_marco
 ENABLE_CACHE ?= True
 SPLIT ?= 0,1
 

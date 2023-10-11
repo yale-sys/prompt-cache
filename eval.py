@@ -13,6 +13,7 @@ from promptcache import Prompt, CompactSpaces, read_file, CacheEngine, \
 from benchmark.benchmark_base import Benchmark, Entry, DATASET_LIST, SCHEMA_FILE_DIRECTORY
 from benchmark.squad_v2 import SquadV2
 from benchmark.multi_news import MultiNews
+from benchmark.ms_marco_v1_1 import MSMarcoV1
 
 BENCHMARK_PATH = "./benchmark"
 
@@ -72,8 +73,8 @@ class Eval():
             pass
         elif "pubmed" in dataset:
             pass
-        elif "macro" in dataset:
-            pass
+        elif "ms_marco" in dataset:
+            self.dataset = MSMarcoV1()
         
         # for testing purpose, limit the entries to a small number
         self.dataset.init(limit_entries=3)
