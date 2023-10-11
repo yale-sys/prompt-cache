@@ -3,8 +3,6 @@ import fire
 import sys, json
 import os
 import datetime
-# eval_path = os.path.abspath(os.path.dirname(__file__))
-# sys.path.append(os.path.abspath(os.path.join(eval_path, '..')))
 from promptcache.model import Llama2, Falcon, Mpt
 from transformers import (
     AutoTokenizer, LlamaForCausalLM, LlamaTokenizer,
@@ -44,12 +42,22 @@ class Eval():
             self.lm.get_formatter()
         ]
 
+        # self.parameter = GenerationParameters(
+        #     temperature=0.1,
+        #     repetition_penalty=1.17,
+        #     top_p=0.95,
+        #     top_k=-1,
+        #     max_new_tokens=512,
+        #     stop_token_ids=self.lm.stop_token_ids,
+        #     stop_str=self.lm.stop_str
+        # )
+
         self.parameter = GenerationParameters(
-            temperature=0.1,
+            temperature=0.0,
             repetition_penalty=1.17,
-            top_p=0.95,
-            top_k=-1,
-            max_new_tokens=512,
+            top_p=-1,
+            top_k=1,
+            max_new_tokens=128,
             stop_token_ids=self.lm.stop_token_ids,
             stop_str=self.lm.stop_str
         )
@@ -84,11 +92,16 @@ class Eval():
             json.dump(results, f)
             f.write("\n")
 
-    def run(self, batch_cache_size=1):
+    def run(self, cache_batch_size, split):
         entry_count = self.dataset.get_entry_count()
-        for i in range(0, entry_count, batch_cache_size):
-            entries = self.dataset.get_query((i, i + batch_cache_size))
-            # load schema for `batch_cache_size` entries
+        split_count = entry_count // split[1]
+        start = split_count * split[0]
+        end = split_count * (split[0] + 1)
+        print(f"Running bench mark on {self.dataset.dataset_name}, start: {start}, end: {end}")
+
+        for i in range(start, end, cache_batch_size):
+            entries = self.dataset.get_query((i, i + cache_batch_size))
+            # load schema for `cache_batch_size` entries
             for entry in entries:
                 schema_file_path = os.path.join(SCHEMA_FILE_DIRECTORY, self.dataset.dataset_name, entry.schema)
                 print(schema_file_path)
@@ -130,9 +143,9 @@ class Eval():
 
             self.cache_engine.remove_all_schemas()
 
-def main(llm_config_path: str=os.path.join(BENCHMARK_PATH, "config/llm_config_llama2.json"), dataset: str="squad_v2", enable_cache=False):
+def main(llm_config_path: str=os.path.join(BENCHMARK_PATH, "config/llm_config_llama2.json"), dataset: str="squad_v2", enable_cache=False, cache_batch_size=1, split=(0, 1)):
     eval = Eval(llm_config_path, dataset, enable_cache)
-    eval.run()
+    eval.run(cache_batch_size, split)
 
 if __name__ == "__main__":
     fire.Fire(main)
