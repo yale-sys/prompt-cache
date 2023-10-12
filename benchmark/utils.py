@@ -1,6 +1,7 @@
 from xml.etree.ElementTree import Element, SubElement, tostring, ElementTree
 from xml.dom import minidom
 
+
 class XMLSchemaBuilder:
     def __init__(self, schema_name):
         self.schema = Element('schema', name=schema_name)
@@ -35,4 +36,3 @@ class XMLSchemaBuilder:
         reparsed = minidom.parseString(rough_string)
         prettystr = reparsed.toprettyxml(indent="\t")
         return prettystr.replace('&quot;', "'")
-
