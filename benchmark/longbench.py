@@ -34,7 +34,8 @@ class LongBench(Benchmark):
                 id = item["_id"]
                 schema_name = f"schema_{id}"
                 builder = XMLSchemaBuilder(schema_name)
-                context = item["context"][:4000]
+                context = item["context"][:10000]
+                #print(len(context))
                 # title = item["title"]
                 question = item["input"]
                 answer = item["answers"]

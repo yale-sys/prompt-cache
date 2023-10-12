@@ -222,7 +222,7 @@ class Eval:
 
 
 def main(llm_config_path: str = os.path.join('./', "config/llm_config_llama2.json"),
-         dataset: str = "2wikimqa", enable_cache=True, cache_batch_size=1, split=(0, 1)):
+         dataset: str = "2wikimqa", enable_cache=False, cache_batch_size=1, split=(0, 1)):
     eval = Eval(llm_config_path, dataset, enable_cache)
     eval.run(cache_batch_size, split)
 
