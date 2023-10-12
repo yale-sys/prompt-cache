@@ -1,0 +1,5 @@
+{
+    "name": "meta-llama/Llama-2-13b-chat-hf",
+    "load_in_8bit": true,
+    "device_map": "auto"
+}
