@@ -68,16 +68,16 @@ class Eval:
 
         if dataset is None or dataset not in DATASET_LIST:
             raise ValueError("Dataset name cannot be None, valid dataset names are: " + ", ".join(DATASET_LIST))
-        elif "squad" in dataset:
-            self.dataset = SquadV2()
-        elif "multi_news" in dataset:
-            self.dataset = MultiNews()
-        elif "wiki" in dataset:
-            pass
-        elif "pubmed" in dataset:
-            pass
-        elif "ms_marco" in dataset:
-            self.dataset = MSMarcoV1()
+        # elif "squad" in dataset:
+        #     self.dataset = SquadV2()
+        # elif "multi_news" in dataset:
+        #     self.dataset = MultiNews()
+        # elif "wiki" in dataset:
+        #     pass
+        # elif "pubmed" in dataset:
+        #     pass
+        # elif "ms_marco" in dataset:
+        #     self.dataset = MSMarcoV1()
 
 
         match dataset:
@@ -102,8 +102,8 @@ class Eval:
 
                 self.dataset = LongBench("hotpotqa")
 
-            case "2wikiqa":
-                self.dataset = LongBench("2wikiqa")
+            case "2wikimqa":
+                self.dataset = LongBench("2wikimqa")
 
             case "musique":
                 self.dataset = LongBench("musique")
@@ -222,7 +222,7 @@ class Eval:
 
 
 def main(llm_config_path: str = os.path.join('./', "config/llm_config_llama2.json"),
-         dataset: str = "squad_v2", enable_cache=True, cache_batch_size=1, split=(0, 1)):
+         dataset: str = "2wikimqa", enable_cache=True, cache_batch_size=1, split=(0, 1)):
     eval = Eval(llm_config_path, dataset, enable_cache)
     eval.run(cache_batch_size, split)
 

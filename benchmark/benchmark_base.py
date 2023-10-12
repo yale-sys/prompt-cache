@@ -49,6 +49,7 @@ class Benchmark(abc.ABC):
         """
         if dataset_name not in DATASET_LIST:
             raise ValueError("Dataset name cannot be None, valid dataset names are: " + ", ".join(DATASET_LIST))
+
         self.dataset = None
         self.entries = []
         self.schema_path = os.path.join(SCHEMA_FILE_DIRECTORY, dataset_name)

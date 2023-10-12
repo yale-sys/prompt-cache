@@ -15,8 +15,7 @@ _assistant_description = "Sure. I have read the document. Please give me any que
 
 class LongBench(Benchmark):
     def __init__(self, subset_name: str):
-        self.dataset_name = "longbench_" + subset_name
-        self.subset_name = subset_name
+        self.dataset_name = subset_name
 
         super().__init__(self.dataset_name)
 
@@ -25,7 +24,10 @@ class LongBench(Benchmark):
         Download (one time) and load the dataset to run;
         Preprocess the dataset to be organized in the `Entry` format.
         """
-        self.dataset = load_dataset('THUDM/LongBench', self.subset_name, split='test')
+        self.dataset = load_dataset('THUDM/LongBench', self.dataset_name)
+
+        print(self.dataset)
+
         count = 0
         for split in self.dataset.values():
             for item in split:
