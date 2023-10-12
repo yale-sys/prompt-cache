@@ -26,8 +26,6 @@ class LongBench(Benchmark):
         """
         self.dataset = load_dataset('THUDM/LongBench', self.dataset_name)
 
-        print(self.dataset)
-
         count = 0
         for split in self.dataset.values():
             for item in split:
@@ -36,7 +34,7 @@ class LongBench(Benchmark):
                 id = item["_id"]
                 schema_name = f"schema_{id}"
                 builder = XMLSchemaBuilder(schema_name)
-                context = item["context"]
+                context = item["context"][:4000]
                 # title = item["title"]
                 question = item["input"]
                 answer = item["answers"]
