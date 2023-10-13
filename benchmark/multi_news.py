@@ -18,6 +18,7 @@ _document_user_summary = "Summarize the above document in around THREE sentences
 
 MAX_DOCUMENT_LENGTH = 2560
 
+
 class MultiNews(Benchmark):
     def __init__(self):
         self.dataset_name = "multi_news"
@@ -53,11 +54,13 @@ class MultiNews(Benchmark):
             builder.set_system_description(_document_system_description)
 
             # Set the user description
-            builder.set_user_description("")    # _document_user_description
+            builder.set_user_description("")  # _document_user_description
 
             # Add document modules
             # builder.add_document_module("DOC", "The given documents are the target for the summarization task. They can contain multiple sentences.")
-            document_str = self.dataset[_document_dataset][document_idx]["document"].replace("’", "'").replace("”", '"').replace("“", '"').replace("‘", "'").replace("…", "...").replace("–", "-")
+            document_str = self.dataset[_document_dataset][document_idx]["document"].replace("’", "'").replace("”",
+                                                                                                               '"').replace(
+                "“", '"').replace("‘", "'").replace("…", "...").replace("–", "-")
             if len(document_str) > MAX_DOCUMENT_LENGTH:
                 document_str = document_str[:MAX_DOCUMENT_LENGTH]
             builder.add_document_module(f"{_document_header}{document_idx}", document_str)
@@ -76,11 +79,12 @@ class MultiNews(Benchmark):
             <{_document_header}{document_idx}/>
             <user>{_document_user_summary}</user></prompt>
             """
-            summary_str = self.dataset[_document_dataset][document_idx]["summary"].replace("’", "'").replace("”", '"').replace("“", '"').replace("‘", "'").replace("…", "...").replace("–", "-")
+            summary_str = self.dataset[_document_dataset][document_idx]["summary"].replace("’", "'").replace("”",
+                                                                                                             '"').replace(
+                "“", '"').replace("‘", "'").replace("…", "...").replace("–", "-")
             self.entries.append(Entry(schema_file_name, prompt, summary_str))
 
             count += 1
-
 
     def get_next_query(self):
         """
@@ -102,4 +106,5 @@ class MultiNews(Benchmark):
         assert query_id < len(self.dataset[_document_dataset])
         assert response_from_llm is not None
         assert response_from_llm != ""
-        raise NotImplementedError("This method should call utility function to measure how the response is closer to the expected answer.")
+        raise NotImplementedError(
+            "This method should call utility function to measure how the response is closer to the expected answer.")

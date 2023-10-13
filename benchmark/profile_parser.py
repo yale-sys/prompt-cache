@@ -2,6 +2,7 @@ import json
 import os
 import sys
 
+
 class JsonParser:
     def __init__(self, file_path):
         # add this directory to the sys.path list
@@ -18,6 +19,7 @@ class JsonParser:
     def get_data(self):
         return self.data
 
+
 class BenchmarkSetupParser(JsonParser):
     dataset_size_str = 'dataset_sizes'
 
@@ -31,6 +33,7 @@ class BenchmarkSetupParser(JsonParser):
         assert self.data is not None
         assert size_name in self.data[BenchmarkSetupParser.dataset_size_str]
         return int(self.data[BenchmarkSetupParser.dataset_size_str][size_name])
+
 
 class BenchmarkProfileParser(JsonParser):
     def __init__(self, file_path):

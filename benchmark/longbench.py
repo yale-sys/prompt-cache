@@ -3,45 +3,46 @@ from .utils import XMLSchemaBuilder
 from datasets import load_dataset
 import os
 
-_document_schema_name = "document_summary"
-_document_header = "Document"
-_document_system_description = "Below are a series of dialogues between various people and an AI assistant. The AI tries to be helpful, polite, \
+_system_description = "Below are a series of dialogues between various people and an AI assistant. The AI tries to be helpful, polite, \
 honest, sophisticated, emotionally aware, and humble-but-knowledgeable. The assistant is happy to help with \
 almost anything, and will do its best to understand exactly what is needed. It also tries to avoid giving false \
 or misleading information, and it caveats when it isn't entirely sure about the right answer. That said, the \
 assistant is practical and really does its best, and doesn't let caution get too much in the way of being \
 useful."
-_document_user_description = "For the upcoming interaction, I would like you to answer some questions about the document."
-_document_assistant_description = "Sure. I have read the document. Please give me any question."
+_user_description = "For the upcoming interaction, I would like you to answer some questions about the document."
+_assistant_description = "Sure. I have read the document. Please give me any question."
 
 
-class SquadV2(Benchmark):
-    def __init__(self):
-        self.dataset_name = "squad_v2"
+class LongBench(Benchmark):
+    def __init__(self, subset_name: str):
+        self.dataset_name = subset_name
+
         super().__init__(self.dataset_name)
 
     def init(self, limit_entries=None):
         """
-        Download (one time) and load the dataset to run; 
+        Download (one time) and load the dataset to run;
         Preprocess the dataset to be organized in the `Entry` format.
         """
-        self.dataset = load_dataset(self.dataset_name)
+        self.dataset = load_dataset('THUDM/LongBench', self.dataset_name)
+
         count = 0
         for split in self.dataset.values():
             for item in split:
                 if limit_entries is not None and count >= limit_entries:
                     break
-                id = item["id"]
+                id = item["_id"]
                 schema_name = f"schema_{id}"
                 builder = XMLSchemaBuilder(schema_name)
-                context = item["context"]
+                context = item["context"][:10000]
+                #print(len(context))
                 # title = item["title"]
-                question = item["question"]
-                answer = item["answers"]["text"]
-                builder.set_system_description(_document_system_description)
-                builder.set_user_description(_document_user_description)
+                question = item["input"]
+                answer = item["answers"]
+                builder.set_system_description(_system_description)
+                builder.set_user_description(_user_description)
                 builder.add_document_module("context", context)
-                builder.set_assistant_description(_document_assistant_description)
+                builder.set_assistant_description(_assistant_description)
 
                 schema_file_name = f"{schema_name}.xml"
                 with open(os.path.join(self.schema_path, schema_file_name), "w") as f:
@@ -58,7 +59,7 @@ class SquadV2(Benchmark):
 
 
 if __name__ == '__main__':
-    sq = SquadV2()
+    sq = LongBench('2wikimqa')
     sq.init()
     print(sq.get_entry_count())
     print(sq.get_query((0, 1)))

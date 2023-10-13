@@ -1,7 +1,8 @@
 from transformers import AutoTokenizer, AutoModelForCausalLM, AutoModel
 
 models = [
-    "mosaicml/mpt-7b-chat"
+    "codellama/CodeLlama-13b-Instruct-hf",
+    "codellama/CodeLlama-7b-Instruct-hf",
     # "BAAI/AquilaChat-7B",
     # "baichuan-inc/Baichuan2-7B-Chat",
     # "bigscience/bloomz",

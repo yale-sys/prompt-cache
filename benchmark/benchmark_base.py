@@ -5,9 +5,17 @@
 #     * get_entry_count(): return the number of entries in the dataset.
 #     * get_query(): return a list of Entry objects for the given range.
 import os
+import abc
+from typing import Tuple, List
+
+import datasets
 
 SCHEMA_FILE_DIRECTORY = "./benchmark/schema"
-DATASET_LIST = ["squad_v2", "multi_news", "wiki_qa", "pubmed_qa", "ms_marco"]
+DATASET_LIST = ["squad_v2", "multi_news", "wiki_qa", "pubmed_qa", "ms_marco", "narrativeqa", "qasper",
+                "multifieldqa_en", "hotpotqa", "2wikimqa", "musique", "dureader", "gov_report", "qmsum", "multi_news",
+                "vcsum", "trec", "triviaqa", "samsum", "lsht", "passage_count", "passage_retrieval_en", "lcc",
+                "repobench-p"]
+
 DATASET_SUBSET = {
     "multi_news": None,
     "squad_v2": None,
@@ -15,6 +23,7 @@ DATASET_SUBSET = {
     "pubmed_qa": ["pqa_artificial", "pqa_labeled", "pqa_unlabeled"],
     "ms_marco": ["v1.1", "v2.1"]
 }
+
 
 class Entry:
     def __init__(self, schema, prompt, answer=None):
@@ -27,23 +36,27 @@ class Entry:
         self.schema = schema
         self.prompt = prompt
         self.answer = answer
-    
+
     def __repr__(self) -> str:
         return f"Entry(schema={self.schema}, prompt={self.prompt}, answer={self.answer})"
 
-class Benchmark:
+
+class Benchmark(abc.ABC):
+
     def __init__(self, dataset_name: str):
         """
         Constructor to initialize any required variables.
         """
         if dataset_name not in DATASET_LIST:
             raise ValueError("Dataset name cannot be None, valid dataset names are: " + ", ".join(DATASET_LIST))
+
         self.dataset = None
         self.entries = []
         self.schema_path = os.path.join(SCHEMA_FILE_DIRECTORY, dataset_name)
         if not os.path.exists(self.schema_path):
             os.makedirs(self.schema_path)
 
+    @abc.abstractmethod
     def init(self, limit_entries=None):
         """
         Download (one time) and load the dataset to run; 
@@ -51,13 +64,13 @@ class Benchmark:
         """
         raise NotImplementedError("This method should be overridden by subclass")
 
-    def get_entry_count(self):
+    def get_entry_count(self) -> int:
         """
         Return the number of entries in the dataset.
         """
         return len(self.entries)
 
-    def get_query(self, range) -> [Entry]:
+    def get_query(self, range: Tuple[int, int]) -> List[Entry]:
         """
         Return a list of Entry objects for the given range.
         [range: (int, int)] the range of entries to return
