@@ -79,6 +79,10 @@
         "context": "Please complete the code given below. \n{context}",
         "question": "{input} Next line of code:\n"
     },
+    "multi_news": {
+        "context": "You are given several news passages. Write a one-page summary of all news. \n\nNews:\n{context}\n\nNow, write a one-page summary of all the news.\n\n",
+        "question": "Summary::\n"
+    },
     "squad_v2": {
         "context": "Please complete the code given below. \n{context}",
         "question": "Next line of code:\n"
