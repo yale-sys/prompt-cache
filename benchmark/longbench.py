@@ -1,3 +1,5 @@
+import re
+
 from .benchmark_base import Benchmark, Entry
 from .utils import XMLSchemaBuilder
 from datasets import load_dataset
@@ -13,6 +15,14 @@ _user_description = "For the upcoming interaction, I would like you to answer so
 _assistant_description = "Sure. I have read the document. Please give me any question."
 
 
+def escape_tags(input_str):
+    pattern = r'<(?P<content>.*?)>'
+
+    # The lambda function ensures only the first letter is capitalized
+    def repl(match):
+        return '(' + match.group("content").capitalize() + ')'
+
+    return re.sub(pattern, repl, input_str)
 class LongBench(Benchmark):
     def __init__(self, subset_name: str):
         super().__init__(subset_name)
@@ -39,7 +49,7 @@ class LongBench(Benchmark):
                 answer = item["answers"]
                 builder.set_system_description(_system_description)
                 builder.set_user_description(_user_description)
-                builder.add_document_module("context", self.dataset_prompt["context"].format(context=context))
+                builder.add_document_module("context", self.dataset_prompt["context"].format(context=escape_tags(context)))
                 builder.set_assistant_description(_assistant_description)
 
                 schema_file_name = f"{schema_name}.xml"
