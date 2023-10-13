@@ -154,7 +154,7 @@ class Eval:
             json.dump(results, f)
             f.write("\n")
 
-    def run(self, cache_batch_size, split):
+    def run(self, cache_batch_size, split, verbose=False):
         entry_count = self.dataset.get_entry_count()
         split_count = entry_count // split[1]
 
@@ -172,13 +172,16 @@ class Eval:
                                              batch_size=self.llm_config.get("schema_load_batch", 1))
 
             for entry in entries:
-                prompt = Prompt(entry.prompt, self.preproc)
                 print(entry.prompt)
+                prompt = Prompt(entry.prompt, self.preproc)
                 no_cache = not self.enable_cache
                 token_ids, position_ids, cache_time, cache = self.cache_engine.process(prompt, no_cache=no_cache,
                                                                                        return_full_position_ids=self.lm.use_full_position_ids)
                 if no_cache:
                     assert cache is None
+                    # for debugging
+                    if verbose:
+                        print("No caching | prompt: " + self.lm.decode(token_ids))
 
                 output_stream = self.gen_engine.generate(token_ids, position_ids, self.parameter, cache,
                                                          stream_interval=2,

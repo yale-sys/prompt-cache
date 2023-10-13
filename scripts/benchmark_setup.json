@@ -1,0 +1,48 @@
+{
+    "default": {
+        "llm_config_path": "./config/mpt.json",
+        "split": "0,1"
+    },
+    "benchmarks": [
+        {"dataset": "squad_v2"},
+        {"dataset": "multi_news"},
+        {"dataset": "ms_marco"},
+        {"dataset": "narrativeqa"},
+        {"dataset": "qasper"},
+        {"dataset": "multifieldqa_en"},
+        {"dataset": "hotpotqa"},
+        {"dataset": "2wikimqa"},
+        {"dataset": "musique"},
+        {"dataset": "dureader"},
+        {"dataset": "gov_report"},
+        {"dataset": "qmsum"},
+        {"dataset": "multi_news_long"},
+        {"dataset": "vcsum"},
+        {"dataset": "trec"},
+        {"dataset": "triviaqa"},
+        {"dataset": "samsum"},
+        {"dataset": "lsht"},
+        {"dataset": "passage_count"},
+        {"dataset": "passage_retrieval_en"},
+        {"dataset": "lcc"},
+        {"dataset": "repobench-p"}
+    ],
+    "okay_so_far_benchmarks" :[
+    ],
+    "skipped_benchmarks": [
+    ],
+    "llm_list": [
+        {
+            "llm": "falcon",
+            "config_name": "./config/llm_config_falcon.json"
+        },
+        {
+            "llm": "mpt",
+            "config_name": "./config/llm_config_mpt.json"
+        },
+        {
+            "llm": "llama2",
+            "config_name": "./config/llm_config_llama2.json"
+        }
+    ]
+}
