@@ -12,11 +12,11 @@ class XMLSchemaBuilder:
         system = SubElement(self.schema, 'system')
         system.text = description
 
-    def set_user_description(self, description, user_union=False):
+    def set_user_description(self, description, user_union=False, scaffold_name="DOC"):
         self.user = SubElement(self.schema, 'user')
         self.user.text = description
         if user_union:
-            self.user_union = SubElement(self.user, 'union', scaffold="DOC")
+            self.user_union = SubElement(self.user, 'union', scaffold=scaffold_name)
 
     def add_document_module_union(self, module_name, content):
         assert self.user_union is not None

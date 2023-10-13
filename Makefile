@@ -1,6 +1,7 @@
 .PHONY: eval
 
 LLM_CONFIG_PATH ?= ./config/llm_config_llama2.json
+# LLM_CONFIG_PATH ?= ./config/llm_config_llama2_13b.json
 DATASET ?= squad_v2
 # DATASET ?= multi_news
 # DATASET ?= ms_marco
