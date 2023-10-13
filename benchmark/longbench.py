@@ -39,7 +39,7 @@ class LongBench(Benchmark):
                 answer = item["answers"]
                 builder.set_system_description(_system_description)
                 builder.set_user_description(_user_description)
-                builder.add_document_module("context", context)
+                builder.add_document_module("context", self.dataset_prompt["context"].format(context=context))
                 builder.set_assistant_description(_assistant_description)
 
                 schema_file_name = f"{schema_name}.xml"
@@ -49,7 +49,7 @@ class LongBench(Benchmark):
                 prompt = f"""
                 <prompt schema='{schema_name}'>
                 <context/>
-                <user>{question}</user></prompt>
+                <user>{self.dataset_prompt["question"].format(input=question)}</user></prompt>
                 """
                 self.entries.append(Entry(schema_file_name, prompt, answer))
 

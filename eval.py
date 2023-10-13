@@ -60,7 +60,7 @@ class Eval:
             repetition_penalty=1.17,
             top_p=-1,
             top_k=1,
-            max_new_tokens=128,
+            max_new_tokens=self.dataset_maxlen[dataset],
             stop_token_ids=self.lm.stop_token_ids,
             stop_str=self.lm.stop_str
         )
@@ -85,6 +85,7 @@ class Eval:
 
             case "multi_news":
                 self.dataset = MultiNews()
+
             case "ms_marco":
                 self.dataset = MSMarcoV1()
 
@@ -146,7 +147,7 @@ class Eval:
                 self.dataset = LongBench("repobench-p")
 
         # for testing purpose, limit the entries to a small number
-        self.dataset.init(limit_entries=3)
+        self.dataset.init(limit_entries=10)
 
         # create result directory
         self.result_directory = os.path.join(BENCHMARK_PATH, "results",
