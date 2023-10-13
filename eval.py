@@ -67,17 +67,6 @@ class Eval:
 
         if dataset is None or dataset not in DATASET_LIST:
             raise ValueError("Dataset name cannot be None, valid dataset names are: " + ", ".join(DATASET_LIST))
-        # elif "squad" in dataset:
-        #     self.dataset = SquadV2()
-        # elif "multi_news" in dataset:
-        #     self.dataset = MultiNews()
-        # elif "wiki" in dataset:
-        #     pass
-        # elif "pubmed" in dataset:
-        #     pass
-        # elif "ms_marco" in dataset:
-        #     self.dataset = MSMarcoV1()
-
 
         match dataset:
             case "squad_v2":
@@ -211,7 +200,7 @@ class Eval:
                 result = {
                     "cache_time": cache_time,
                     "response_time": response_time,
-                    "answer": entry.answer,
+                    "answers": entry.answer,
                     "response": resp
                 }
                 self.store_results(result)
