@@ -18,28 +18,40 @@ BENCHMARK_PATH = "./benchmark"
 
 
 class Eval:
-    def __init__(self, llm_config_path, dataset, enable_cache):
+    def __init__(self, llm_config_path, dataset, enable_cache, use_cpu_for_inference=False):
         with open("./config/dataset_maxlen.json", 'r') as f:
             self.dataset_maxlen = json.load(f)
 
         with open(llm_config_path, 'r') as f:
             self.llm_config = json.load(f)
         self.enable_cache = enable_cache
+        self.use_cpu_for_inference = use_cpu_for_inference
 
         self.model_name = self.llm_config["name"]
         if "llama" in self.model_name:
             self.model_name = "llama"
-            self.lm = Llama2(**self.llm_config)
+            self.lm_for_caching = Llama2(**self.llm_config)
         elif "falcon" in self.model_name:
             self.model_name = "falcon"
-            self.lm = Falcon(**self.llm_config)
+            self.lm_for_caching = Falcon(**self.llm_config)
         elif "mpt" in self.model_name:
             self.model_name = "mpt"
-            self.lm = Mpt(**self.llm_config)
+            self.lm_for_caching = Mpt(**self.llm_config)
         else:
             raise ValueError("Invalid model name")
 
-        self.cache_engine = CacheEngine(self.llm_config.get("max_ctx_length", 4096), self.lm)
+        if self.use_cpu_for_inference:
+            if "llama" in self.model_name:
+                self.lm = Llama2(name=self.llm_config['name'], device_map=None)
+            elif "falcon" in self.model_name:
+                self.lm = Falcon(name=self.llm_config['name'], device_map=None)
+            elif "mpt" in self.model_name:
+                self.lm = Mpt(name=self.llm_config['name'], device_map=None)
+        else:
+            self.lm = self.lm_for_caching
+
+        self.cache_engine = CacheEngine(self.llm_config.get("max_ctx_length", 4096), self.lm_for_caching,
+                                        target_device=self.lm.device)
         self.gen_engine = GenerationEngine(self.lm)
         self.preproc = [
             CompactSpaces(),
@@ -260,8 +272,10 @@ class Eval:
 
 
 def main(llm_config_path: str = os.path.join('./', "config/llm_config_llama2.json"),
-         dataset: str = "2wikimqa", enable_cache=True, cache_batch_size=1, split=(0, 1), test_latency=True):
-    eval = Eval(llm_config_path, dataset, enable_cache)
+         dataset: str = "2wikimqa", enable_cache=True, cache_batch_size=1, split=(0, 1),
+         test_latency=True,
+         use_cpu_for_inference=True):
+    eval = Eval(llm_config_path, dataset, enable_cache, use_cpu_for_inference)
 
     if test_latency:
         eval.run_latency_eval()
