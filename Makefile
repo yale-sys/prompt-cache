@@ -1,10 +1,10 @@
 .PHONY: eval
 
 LLM_CONFIG_PATH ?= ./config/llm_config_llama2.json
-DATASET ?= squad_v2
+# DATASET ?= squad_v2
 # DATASET ?= multi_news
-# DATASET ?= ms_marco
-ENABLE_CACHE ?= True
+DATASET ?= ms_marco
+ENABLE_CACHE ?= False
 SPLIT ?= 0,1
 
 eval:

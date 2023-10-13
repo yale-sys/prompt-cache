@@ -1,0 +1,3 @@
+[submodule "dependency/LongBench"]
+	path = dependency/LongBench
+	url = https://github.com/THUDM/LongBench.git

@@ -36,7 +36,7 @@ class MSMarcoV1(Benchmark):
         # Now we can generate xml files
         assert self.dataset is not None
         schema_file_name = "schema_summary_sample.xml"
-        self._generate_xml()
+        self._generate_xml(limit_entries)
 
     def _generate_xml(self, limit_entries=10):
         # Generate xml files

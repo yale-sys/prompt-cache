@@ -15,10 +15,28 @@ from benchmark.squad_v2 import SquadV2
 from benchmark.multi_news import MultiNews
 from benchmark.ms_marco_v1_1 import MSMarcoV1
 
+from dependency.LongBench.metrics import (
+    qa_f1_score,
+    rouge_zh_score,
+    qa_f1_zh_score,
+    rouge_score,
+    classification_score,
+    retrieval_score,
+    retrieval_zh_score,
+    count_score,
+    code_sim_score
+)
+
 BENCHMARK_PATH = "./benchmark"
 
 class Eval():
     def __init__(self, llm_config_path, dataset, enable_cache):
+        with open("./config/dataset_maxlen.json", 'r') as f:
+            self.dataset_maxlen = json.load(f)
+        
+        with open("./config/dataset_prompt.json", 'r') as f:
+            self.dataset_prompt = json.load(f)
+
         with open(llm_config_path, 'r') as f:
             self.llm_config = json.load(f)
         self.enable_cache = enable_cache
