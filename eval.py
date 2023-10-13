@@ -155,12 +155,15 @@ class Eval:
             json.dump(results, f)
             f.write("\n")
 
+    @torch.inference_mode()
     def run_latency_eval(self):
 
         for entry in self.dataset.entries:
-            schema_file_path = os.path.join(SCHEMA_FILE_DIRECTORY, self.dataset.dataset_name, entry.schema)
 
-            self.cache_engine.add_schema(read_file(schema_file_path, self.preproc))
+            schema_file_path = os.path.join(SCHEMA_FILE_DIRECTORY, self.dataset.dataset_name, entry.schema)
+            print(schema_file_path)
+            if True:
+                self.cache_engine.add_schema(read_file(schema_file_path, self.preproc))
 
             prompt = Prompt(entry.prompt, self.preproc)
 
@@ -168,6 +171,9 @@ class Eval:
 
             token_ids, position_ids, cache_time, cache = self.cache_engine.process(prompt, no_cache=no_cache,
                                                                                    return_full_position_ids=self.lm.use_full_position_ids)
+
+            if no_cache:
+                assert cache is None
 
             input_ids = torch.tensor([token_ids], device=self.lm.device, dtype=torch.long)
             position_ids = torch.tensor([position_ids], device=self.lm.device, dtype=torch.long)
@@ -193,7 +199,10 @@ class Eval:
                 "cache_time": cache_time,
                 "response_time": response_time,
             }
+            print(result)
             self.store_results(result)
+
+            self.cache_engine.remove_all_schemas()
 
     def run(self, cache_batch_size, split):
         entry_count = self.dataset.get_entry_count()
@@ -251,7 +260,7 @@ class Eval:
 
 
 def main(llm_config_path: str = os.path.join('./', "config/llm_config_llama2.json"),
-         dataset: str = "repobench-p", enable_cache=False, cache_batch_size=1, split=(0, 1), test_latency=False):
+         dataset: str = "2wikimqa", enable_cache=True, cache_batch_size=1, split=(0, 1), test_latency=True):
     eval = Eval(llm_config_path, dataset, enable_cache)
 
     if test_latency:

@@ -477,7 +477,7 @@ class CacheEngine:
             torch.cuda.synchronize()
             cache_time = start.elapsed_time(end)
 
-            print(f'Cache overhead: {cache_time:.2f} ms')
+            #print(f'Cache overhead: {cache_time:.2f} ms')
 
             vv = list(range(len(orig_position_ids)))
 
@@ -503,7 +503,7 @@ class CacheEngine:
             for i in range(len(cache)):
                 cache[i] = (self.lm.read_k_hook(cache[i][0]), self.lm.read_v_hook(cache[i][1]))
 
-            print(f'Cache overhead: {cache_time:.2f} ms')
+            #print(f'Cache overhead: {cache_time:.2f} ms')
 
             if return_full_position_ids:
                 orig_position_ids = list(itertools.chain(*orig_pos_ids_list))
