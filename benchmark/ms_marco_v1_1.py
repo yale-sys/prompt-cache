@@ -13,10 +13,11 @@ _document_schema_name = "multi_document_qna"
 _document_header = "Document"
 _document_dataset = "train"
 _document_system_description = "Dialogues between a user and an AI about the document provided by the user with the aim of being helpful, aware, and accurate."
-_document_assistant_description = "Sure. I have read the documents separated by \\n. Give me any instructions regarding query information based on the documents, and I will try to follow them."
-_document_user_summary = "Among the list of given documents separated by \\n, find the document that is most useful to answer the query and return its index starting at 0. All documents are unrelated, return -1."  # Take a deep breath and think step-by-step.
+_document_assistant_description = "Sure. I have read the documents separated by comma. Give me any instructions regarding query information based on the documents, and I will try to follow them."
+_document_user_summary = "Among the list of given documents separated by a comma, find the document that is most useful to answer the query and return its index starting at [0]. All documents are unrelated, return [-1]. Do not reply using a complete sentence, and only give the answer in the following format: [1]"  # Take a deep breath and think step-by-step.
 
 MAX_DOCUMENT_LENGTH = 2560
+
 
 class MSMarcoV1(Benchmark):
     def __init__(self):
@@ -45,7 +46,7 @@ class MSMarcoV1(Benchmark):
         for document_idx in range(len(self.dataset[_document_dataset])):
             if limit_entries is not None and count >= limit_entries:
                 break
-           # Create an instance of XMLSchemaBuilder with the schema name "document_summary"
+            # Create an instance of XMLSchemaBuilder with the schema name "document_summary"
             query_idx = self.dataset[_document_dataset][document_idx]["query_id"]
             query_str = self.dataset[_document_dataset][document_idx]["query"]
             schema_name = f"{_document_schema_name}_{document_idx}_q{query_idx}"
@@ -58,13 +59,17 @@ class MSMarcoV1(Benchmark):
 
             # Set the user description
             builder.set_user_description("")    # _document_user_description
+            # builder.add_document_module("DOC", "The given documents are the target for searching to answer the query. They can contain multiple sentences.")
+
 
             # Add document modules
             # - we need to collect passages into document str, separated by newline or \n
             document_str = ""
-            for passage in self.dataset[_document_dataset][document_idx]["passages"]["passage_text"]:
-                document_str += f"{passage}\\n"
+
+            for p_idx, passage in enumerate(self.dataset[_document_dataset][document_idx]["passages"]["passage_text"]):
+                document_str += f"\"[{p_idx}] {passage},\n"
             document_str = document_str.replace("’", "'").replace("”", '"').replace("“", '"').replace("‘", "'").replace("…", "...").replace("–", "-")
+
             module_str = f"{_document_header}{document_idx}"
             builder.add_document_module(f"{module_str}", document_str)
 
@@ -76,9 +81,9 @@ class MSMarcoV1(Benchmark):
             with open(os.path.join(self.schema_path, schema_file_name), "w") as f:
                 f.write(builder.generate_xml())
 
-           # Prepare the entry
-            prompt =\
-            f"""<prompt schema='{schema_name}'>
+            # Prepare the entry
+            prompt = \
+                f"""<prompt schema='{schema_name}'>
                 <{module_str}/>
                 <user>{_document_user_summary} Query: "{query_str}"</user>
             </prompt>
@@ -107,13 +112,12 @@ class MSMarcoV1(Benchmark):
         assert query_id < len(self.dataset[_document_dataset])
         assert response_from_llm is not None
         assert response_from_llm != ""
-        raise NotImplementedError("This method should call utility function to measure how the response is closer to the expected answer.")
-        
-        
-        
-        
-        
+        raise NotImplementedError(
+            "This method should call utility function to measure how the response is closer to the expected answer.")
+
         import sys
+
+
 import os
 
 # Add the parent directory to the sys.path list
@@ -124,8 +128,8 @@ from .benchmark_base import Benchmark, Entry
 from .dataset_download import load_documentation_summary
 from .utils import XMLSchemaBuilder
 
-
 MAX_DOCUMENT_LENGTH = 2560
+
 
 class MultiNews(Benchmark):
     def __init__(self):
@@ -164,11 +168,13 @@ class MultiNews(Benchmark):
             builder.set_system_description(_document_system_description)
 
             # Set the user description
-            builder.set_user_description("")    # _document_user_description
+            builder.set_user_description("")  # _document_user_description
 
             # Add document modules
             # builder.add_document_module("DOC", "The given documents are the target for the summarization task. They can contain multiple sentences.")
-            document_str = self.dataset[_document_dataset][document_idx]["document"].replace("’", "'").replace("”", '"').replace("“", '"').replace("‘", "'").replace("…", "...").replace("–", "-")
+            document_str = self.dataset[_document_dataset][document_idx]["document"].replace("’", "'").replace("”",
+                                                                                                               '"').replace(
+                "“", '"').replace("‘", "'").replace("…", "...").replace("–", "-")
             if len(document_str) > MAX_DOCUMENT_LENGTH:
                 document_str = document_str[:MAX_DOCUMENT_LENGTH]
             builder.add_document_module(f"{_document_header}{document_idx}", document_str)
@@ -187,11 +193,12 @@ class MultiNews(Benchmark):
             <{_document_header}{document_idx}/>
             <user>{_document_user_summary} Query: {query_str}</user></prompt>
             """
-            summary_str = self.dataset[_document_dataset][document_idx]["summary"].replace("’", "'").replace("”", '"').replace("“", '"').replace("‘", "'").replace("…", "...").replace("–", "-")
+            summary_str = self.dataset[_document_dataset][document_idx]["summary"].replace("’", "'").replace("”",
+                                                                                                             '"').replace(
+                "“", '"').replace("‘", "'").replace("…", "...").replace("–", "-")
             self.entries.append(Entry(schema_file_name, prompt, summary_str))
 
             count += 1
-
 
     def get_next_query(self):
         """
@@ -213,4 +220,5 @@ class MultiNews(Benchmark):
         assert query_id < len(self.dataset[_document_dataset])
         assert response_from_llm is not None
         assert response_from_llm != ""
-        raise NotImplementedError("This method should call utility function to measure how the response is closer to the expected answer.")
+        raise NotImplementedError(
+            "This method should call utility function to measure how the response is closer to the expected answer.")

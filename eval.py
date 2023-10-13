@@ -3,6 +3,8 @@ import fire
 import sys, json
 import os
 import datetime
+
+from benchmark.longbench import LongBench
 from promptcache.model import Llama2, Falcon, Mpt
 from transformers import (
     AutoTokenizer, LlamaForCausalLM, LlamaTokenizer,
@@ -29,7 +31,8 @@ from dependency.LongBench.metrics import (
 
 BENCHMARK_PATH = "./benchmark"
 
-class Eval():
+
+class Eval:
     def __init__(self, llm_config_path, dataset, enable_cache):
         with open("./config/dataset_maxlen.json", 'r') as f:
             self.dataset_maxlen = json.load(f)
@@ -53,7 +56,7 @@ class Eval():
             self.lm = Mpt(**self.llm_config)
         else:
             raise ValueError("Invalid model name")
-        
+
         self.cache_engine = CacheEngine(self.llm_config.get("max_ctx_length", 4096), self.lm)
         self.gen_engine = GenerationEngine(self.lm)
         self.preproc = [
@@ -83,22 +86,92 @@ class Eval():
 
         if dataset is None or dataset not in DATASET_LIST:
             raise ValueError("Dataset name cannot be None, valid dataset names are: " + ", ".join(DATASET_LIST))
-        elif "squad" in dataset:
-            self.dataset = SquadV2()
-        elif "multi_news" in dataset:
-            self.dataset = MultiNews()
-        elif "wiki" in dataset:
-            pass
-        elif "pubmed" in dataset:
-            pass
-        elif "ms_marco" in dataset:
-            self.dataset = MSMarcoV1()
-        
+        # elif "squad" in dataset:
+        #     self.dataset = SquadV2()
+        # elif "multi_news" in dataset:
+        #     self.dataset = MultiNews()
+        # elif "wiki" in dataset:
+        #     pass
+        # elif "pubmed" in dataset:
+        #     pass
+        # elif "ms_marco" in dataset:
+        #     self.dataset = MSMarcoV1()
+
+
+        match dataset:
+            case "squad_v2":
+                self.dataset = SquadV2()
+
+            case "multi_news":
+                self.dataset = MultiNews()
+            case "ms_marco":
+                self.dataset = MSMarcoV1()
+
+            case "narrativeqa":
+                self.dataset = LongBench("narrativeqa")
+
+            case "qasper":
+                self.dataset = LongBench("qasper")
+
+            case "multifieldqa_en":
+                self.dataset = LongBench("multifieldqa_en")
+
+            case "hotpotqa":
+
+                self.dataset = LongBench("hotpotqa")
+
+            case "2wikimqa":
+                self.dataset = LongBench("2wikimqa")
+
+            case "musique":
+                self.dataset = LongBench("musique")
+
+            case "dureader":
+                self.dataset = LongBench("dureader")
+
+            case "gov_report":
+                self.dataset = LongBench("gov_report")
+
+            case "qmsum":
+                self.dataset = LongBench("qmsum")
+
+            case "multi_news_long":
+                self.dataset = LongBench("multi_news")
+
+            case "vcsum":
+                self.dataset = LongBench("vcsum")
+
+            case "trec":
+                self.dataset = LongBench("trec")
+
+            case "triviaqa":
+                self.dataset = LongBench("triviaqa")
+
+            case "samsum":
+                self.dataset = LongBench("samsum")
+
+            case "lsht":
+                self.dataset = LongBench("lsht")
+
+            case "passage_count":
+                self.dataset = LongBench("passage_count")
+
+            case "passage_retrieval_en":
+                self.dataset = LongBench("passage_retrieval_en")
+
+            case "lcc":
+                self.dataset = LongBench("lcc")
+
+            case "repobench-p":
+                self.dataset = LongBench("repobench-p")
+
         # for testing purpose, limit the entries to a small number
         self.dataset.init(limit_entries=3)
 
         # create result directory
-        self.result_directory = os.path.join(BENCHMARK_PATH, "results", f"{self.model_name}-{self.dataset.dataset_name}", datetime.datetime.now().strftime("%m-%d-%H-%M-%S"))
+        self.result_directory = os.path.join(BENCHMARK_PATH, "results",
+                                             f"{self.model_name}-{self.dataset.dataset_name}",
+                                             datetime.datetime.now().strftime("%m-%d-%H-%M-%S"))
         if not os.path.exists(self.result_directory):
             os.makedirs(self.result_directory)
 
@@ -114,9 +187,10 @@ class Eval():
     def run(self, cache_batch_size, split):
         entry_count = self.dataset.get_entry_count()
         split_count = entry_count // split[1]
+
         start = split_count * split[0]
         end = split_count * (split[0] + 1)
-        print(f"Running bench mark on {self.dataset.dataset_name}, start: {start}, end: {end}")
+        print(f"Running benchmark on {self.dataset.dataset_name}, start: {start}, end: {end}")
 
         for i in range(start, end, cache_batch_size):
             entries = self.dataset.get_query((i, i + cache_batch_size))
@@ -124,20 +198,22 @@ class Eval():
             for entry in entries:
                 schema_file_path = os.path.join(SCHEMA_FILE_DIRECTORY, self.dataset.dataset_name, entry.schema)
                 print(schema_file_path)
-                self.cache_engine.add_schema(read_file(schema_file_path, self.preproc), batch_size=self.llm_config.get("schema_load_batch", 1))
+                self.cache_engine.add_schema(read_file(schema_file_path, self.preproc),
+                                             batch_size=self.llm_config.get("schema_load_batch", 1))
 
             for entry in entries:
                 prompt = Prompt(entry.prompt, self.preproc)
                 print(entry.prompt)
                 no_cache = not self.enable_cache
                 token_ids, position_ids, cache_time, cache = self.cache_engine.process(prompt, no_cache=no_cache,
-                                                              return_full_position_ids=self.lm.use_full_position_ids)
+                                                                                       return_full_position_ids=self.lm.use_full_position_ids)
                 if no_cache:
                     assert cache is None
 
-                output_stream = self.gen_engine.generate(token_ids, position_ids, self.parameter, cache, stream_interval=2,
-                                            use_full_position_ids=self.lm.use_full_position_ids)
-            
+                output_stream = self.gen_engine.generate(token_ids, position_ids, self.parameter, cache,
+                                                         stream_interval=2,
+                                                         use_full_position_ids=self.lm.use_full_position_ids)
+
                 resp = ""
                 pre = 0
                 response_time = 0.0
@@ -162,9 +238,12 @@ class Eval():
 
             self.cache_engine.remove_all_schemas()
 
-def main(llm_config_path: str=os.path.join(BENCHMARK_PATH, "config/llm_config_llama2.json"), dataset: str="squad_v2", enable_cache=False, cache_batch_size=1, split=(0, 1)):
+
+def main(llm_config_path: str = os.path.join('./', "config/llm_config_llama2.json"),
+         dataset: str = "2wikimqa", enable_cache=False, cache_batch_size=1, split=(0, 1)):
     eval = Eval(llm_config_path, dataset, enable_cache)
     eval.run(cache_batch_size, split)
+
 
 if __name__ == "__main__":
     fire.Fire(main)

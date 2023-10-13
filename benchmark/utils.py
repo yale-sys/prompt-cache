@@ -1,6 +1,7 @@
 from xml.etree.ElementTree import Element, SubElement, tostring, ElementTree
 from xml.dom import minidom
 
+
 class XMLSchemaBuilder:
     def __init__(self, schema_name):
         self.schema = Element('schema', name=schema_name)
@@ -11,11 +12,11 @@ class XMLSchemaBuilder:
         system = SubElement(self.schema, 'system')
         system.text = description
 
-    def set_user_description(self, description, user_union=False):
+    def set_user_description(self, description, user_union=False, scaffold_name="DOC"):
         self.user = SubElement(self.schema, 'user')
         self.user.text = description
         if user_union:
-            self.user_union = SubElement(self.user, 'union', scaffold="DOC")
+            self.user_union = SubElement(self.user, 'union', scaffold=scaffold_name)
 
     def add_document_module_union(self, module_name, content):
         assert self.user_union is not None
@@ -35,4 +36,3 @@ class XMLSchemaBuilder:
         reparsed = minidom.parseString(rough_string)
         prettystr = reparsed.toprettyxml(indent="\t")
         return prettystr.replace('&quot;', "'")
-
