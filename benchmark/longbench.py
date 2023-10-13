@@ -15,9 +15,7 @@ _assistant_description = "Sure. I have read the document. Please give me any que
 
 class LongBench(Benchmark):
     def __init__(self, subset_name: str):
-        self.dataset_name = subset_name
-
-        super().__init__(self.dataset_name)
+        super().__init__(subset_name)
 
     def init(self, limit_entries=None):
         """

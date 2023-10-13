@@ -1,14 +1,10 @@
 .PHONY: eval
 
 LLM_CONFIG_PATH ?= ./config/llm_config_llama2.json
-<<<<<<< HEAD
-# DATASET ?= squad_v2
-=======
 # LLM_CONFIG_PATH ?= ./config/llm_config_llama2_13b.json
 DATASET ?= squad_v2
->>>>>>> refs/remotes/origin/main
 # DATASET ?= multi_news
-DATASET ?= ms_marco
+# DATASET ?= ms_marco
 ENABLE_CACHE ?= False
 SPLIT ?= 0,1
 

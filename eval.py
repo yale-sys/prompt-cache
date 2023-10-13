@@ -6,31 +6,15 @@ import datetime
 
 from benchmark.longbench import LongBench
 from promptcache.model import Llama2, Falcon, Mpt
-from transformers import (
-    AutoTokenizer, LlamaForCausalLM, LlamaTokenizer,
-)
 from promptcache import Prompt, CompactSpaces, read_file, CacheEngine, \
-    GenerationEngine, GenerationParameters, llama2_template
+    GenerationEngine, GenerationParameters
 
-from benchmark.benchmark_base import Benchmark, Entry, DATASET_LIST, SCHEMA_FILE_DIRECTORY
+from benchmark.benchmark_base import DATASET_LIST, SCHEMA_FILE_DIRECTORY
 from benchmark.squad_v2 import SquadV2
 from benchmark.multi_news import MultiNews
 from benchmark.ms_marco_v1_1 import MSMarcoV1
 
-from dependency.LongBench.metrics import (
-    qa_f1_score,
-    rouge_zh_score,
-    qa_f1_zh_score,
-    rouge_score,
-    classification_score,
-    retrieval_score,
-    retrieval_zh_score,
-    count_score,
-    code_sim_score
-)
-
 BENCHMARK_PATH = "./benchmark"
-
 
 class Eval:
     def __init__(self, llm_config_path, dataset, enable_cache):

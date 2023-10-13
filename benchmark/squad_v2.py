@@ -17,8 +17,7 @@ _document_assistant_description = "Sure. I have read the document. Please give m
 
 class SquadV2(Benchmark):
     def __init__(self):
-        self.dataset_name = "squad_v2"
-        super().__init__(self.dataset_name)
+        super().__init__("squad_v2")
 
     def init(self, limit_entries=None):
         """
@@ -40,7 +39,7 @@ class SquadV2(Benchmark):
                 answer = item["answers"]["text"]
                 builder.set_system_description(_document_system_description)
                 builder.set_user_description(_document_user_description)
-                builder.add_document_module("context", context)
+                builder.add_document_module("context", self.dataset_prompt["context"].format(context=context))
                 builder.set_assistant_description(_document_assistant_description)
 
                 schema_file_name = f"{schema_name}.xml"
@@ -50,7 +49,7 @@ class SquadV2(Benchmark):
                 prompt = f"""
                 <prompt schema='{schema_name}'>
                 <context/>
-                <user>{question}</user></prompt>
+                <user>{self.dataset_prompt["question"].format(input=question)}</user></prompt>
                 """
                 self.entries.append(Entry(schema_file_name, prompt, answer))
 

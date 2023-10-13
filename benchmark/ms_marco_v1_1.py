@@ -21,8 +21,7 @@ MAX_DOCUMENT_LENGTH = 2560
 
 class MSMarcoV1(Benchmark):
     def __init__(self):
-        self.dataset_name = "ms_marco"
-        super().__init__(self.dataset_name)
+        super().__init__("ms_marco")
         self.next_query_idx = 0
 
     def init(self, limit_entries=0, verbose=False):

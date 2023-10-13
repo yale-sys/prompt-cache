@@ -84,8 +84,8 @@
         "question": "Summary::\n"
     },
     "squad_v2": {
-        "context": "Please complete the code given below. \n{context}",
-        "question": "Next line of code:\n"
+        "context": "Read the following text and answer briefly.\n\n{context}",
+        "question": "Question: {input}\n\nAnswer:"
     },
     "wiki_qa": {
         "context": "Please complete the code given below. \n{context}",

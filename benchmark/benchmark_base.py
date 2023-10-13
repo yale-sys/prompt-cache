@@ -43,6 +43,7 @@ class Benchmark(abc.ABC):
         if dataset_name not in DATASET_LIST:
             raise ValueError("Dataset name cannot be None, valid dataset names are: " + ", ".join(DATASET_LIST))
 
+        self.dataset_name = dataset_name
         self.dataset = None
         self.entries = []
         self.schema_path = os.path.join(SCHEMA_FILE_DIRECTORY, dataset_name)
@@ -56,7 +57,7 @@ class Benchmark(abc.ABC):
         dataset_prompt_path = os.path.join(base_path, '../config/dataset_prompt.json')
         with open(dataset_prompt_path, 'r') as f:
             self.dataset_prompt = json.load(f)
-        self.dataset_prompt = self.dataset_prompt[self.dataset.dataset_name]
+        self.dataset_prompt = self.dataset_prompt[self.dataset_name]
 
     @abc.abstractmethod
     def init(self, limit_entries=None):

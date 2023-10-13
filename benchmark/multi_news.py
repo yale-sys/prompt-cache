@@ -21,8 +21,7 @@ MAX_DOCUMENT_LENGTH = 2560
 
 class MultiNews(Benchmark):
     def __init__(self):
-        self.dataset_name = "multi_news"
-        super().__init__(self.dataset_name)
+        super().__init__("multi_news")
         self.next_query_idx = 0
 
     def init(self, limit_entries=0, verbose=False):
