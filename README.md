@@ -32,6 +32,13 @@ Install dependencies for the transformer inference:
 pip install deepspeed bitsandbytes peft protobuf lxml SentencePiece scipy
 ```
 
+Install bleurt:
+
+```bash
+cd ./dependency/bleurt
+pip install .
+```
+
 ### Demo
 
 Simple demonstration code is located inside `main.py`. You can run it by

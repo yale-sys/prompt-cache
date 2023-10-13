@@ -1,3 +1,8 @@
 [submodule "dependency/LongBench"]
 	path = dependency/LongBench
 	url = https://github.com/THUDM/LongBench.git
+	ignore = dirty
+[submodule "dependency/bleurt"]
+	path = dependency/bleurt
+	url = https://github.com/google-research/bleurt
+	ignore = dirty
