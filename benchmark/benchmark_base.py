@@ -4,11 +4,9 @@
 #     * init() : download (one time) and load the dataset to run; do any preprocessing required for running this benchmark
 #     * get_entry_count(): return the number of entries in the dataset.
 #     * get_query(): return a list of Entry objects for the given range.
-import os
+import os, json
 import abc
 from typing import Tuple, List
-
-import datasets
 
 SCHEMA_FILE_DIRECTORY = "./benchmark/schema"
 DATASET_LIST = ["squad_v2", "multi_news", "wiki_qa", "pubmed_qa", "ms_marco", "narrativeqa", "qasper",
@@ -17,13 +15,9 @@ DATASET_LIST = ["squad_v2", "multi_news", "wiki_qa", "pubmed_qa", "ms_marco", "n
                 "repobench-p"]
 
 DATASET_SUBSET = {
-    "multi_news": None,
-    "squad_v2": None,
-    "wiki_qa": None,
     "pubmed_qa": ["pqa_artificial", "pqa_labeled", "pqa_unlabeled"],
     "ms_marco": ["v1.1", "v2.1"]
 }
-
 
 class Entry:
     def __init__(self, schema, prompt, answer=None):
@@ -42,7 +36,6 @@ class Entry:
 
 
 class Benchmark(abc.ABC):
-
     def __init__(self, dataset_name: str):
         """
         Constructor to initialize any required variables.
@@ -55,6 +48,15 @@ class Benchmark(abc.ABC):
         self.schema_path = os.path.join(SCHEMA_FILE_DIRECTORY, dataset_name)
         if not os.path.exists(self.schema_path):
             os.makedirs(self.schema_path)
+
+        self.load_prompt()
+
+    def load_prompt(self):
+        base_path = os.path.dirname(os.path.abspath(__file__))
+        dataset_prompt_path = os.path.join(base_path, '../config/dataset_prompt.json')
+        with open(dataset_prompt_path, 'r') as f:
+            self.dataset_prompt = json.load(f)
+        self.dataset_prompt = self.dataset_prompt[self.dataset.dataset_name]
 
     @abc.abstractmethod
     def init(self, limit_entries=None):

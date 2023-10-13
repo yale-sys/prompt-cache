@@ -36,9 +36,6 @@ class Eval:
     def __init__(self, llm_config_path, dataset, enable_cache):
         with open("./config/dataset_maxlen.json", 'r') as f:
             self.dataset_maxlen = json.load(f)
-        
-        with open("./config/dataset_prompt.json", 'r') as f:
-            self.dataset_prompt = json.load(f)
 
         with open(llm_config_path, 'r') as f:
             self.llm_config = json.load(f)
@@ -117,7 +114,6 @@ class Eval:
                 self.dataset = LongBench("multifieldqa_en")
 
             case "hotpotqa":
-
                 self.dataset = LongBench("hotpotqa")
 
             case "2wikimqa":
