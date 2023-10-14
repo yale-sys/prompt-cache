@@ -23,13 +23,13 @@
         {"dataset": "samsum"},
         {"dataset": "lsht"},
         {"dataset": "passage_count"},
-        {"dataset": "passage_retrieval_en"},
-        {"dataset": "lcc"},
-        {"dataset": "repobench-p"}
+        {"dataset": "passage_retrieval_en"}
     ],
     "okay_so_far_benchmarks" :[
     ],
     "skipped_benchmarks": [
+        {"dataset": "lcc"},
+        {"dataset": "repobench-p"}
     ],
     "llm_list": [
         {

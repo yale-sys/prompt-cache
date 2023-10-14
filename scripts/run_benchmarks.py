@@ -38,11 +38,11 @@ def construct_python_commands(default_args, benchmarks, llm_list):
 
 def run_python_command_with_logging(command):
     try:
-        parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(sys.argv[0])))
-        os.chdir(parent_dir)
-        logging.info(f"Changed working directory to {parent_dir}")
+        # parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(sys.argv[0])))
+        # os.chdir(parent_dir)
+        # logging.info(f"Changed working directory to {parent_dir}")
         
-        subprocess.run(command, shell=True, check=True)
+        subprocess.run("cd .. && " + command, shell=True, check=True)
         logging.info(f"Command {command} completed successfully.")
         return True
     except subprocess.CalledProcessError as e:
@@ -63,7 +63,7 @@ def main():
     logging.info(f"Constructed {len(python_commands)} benchmarks.")
     
     with ThreadPoolExecutor(max_workers=num_gpus) as executor:
-        results = list(executor.map(run_python_command_with_logging, python_commands[-1:]))
+        results = list(executor.map(run_python_command_with_logging, python_commands))
 
 if __name__ == "__main__":
     main()
