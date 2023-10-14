@@ -20,8 +20,9 @@
     "lcc": 64,
     "repobench-p": 64,
     "multi_news": 512,
+    "multi_news_long": 512,
     "squad_v2": 32,
     "wiki_qa": 128,
     "pubmd_qa": 128,
-    "ms_macro": 32
+    "ms_marco": 32
 }

@@ -149,7 +149,7 @@ class Eval:
                 self.dataset = LongBench("repobench-p")
 
         # for testing purpose, limit the entries to a small number
-        self.dataset.init(limit_entries=10)
+        self.dataset.init(limit_entries=None)
 
         # create result directory
         self.result_directory = os.path.join(BENCHMARK_PATH, "results",
@@ -243,7 +243,7 @@ class Eval:
                     assert cache is None
                     # for debugging
                     if verbose:
-                        print("No caching | prompt: " + self.lm.decode(token_ids))
+                        print("No caching; prompt:\n" + self.lm.decode(token_ids) + "\n")
 
                 output_stream = self.gen_engine.generate(token_ids, position_ids, self.parameter, cache,
                                                          stream_interval=2,
@@ -277,13 +277,14 @@ class Eval:
 def main(llm_config_path: str = os.path.join('./', "config/llm_config_llama2.json"),
          dataset: str = "2wikimqa", enable_cache=True, cache_batch_size=1, split=(0, 1),
          test_latency=True,
-         use_cpu_for_inference=True):
+         use_cpu_for_inference=True,
+         verbose=False):
     eval = Eval(llm_config_path, dataset, enable_cache, use_cpu_for_inference)
 
     if test_latency:
         eval.run_latency_eval()
     else:
-        eval.run(cache_batch_size, split)
+        eval.run(cache_batch_size, split, verbose)
 
 
 if __name__ == "__main__":
