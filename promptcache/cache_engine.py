@@ -172,14 +172,15 @@ class SchemaCache:
 
     lm: LanguageModel
 
-    def __init__(self, schema: Schema, lm: LanguageModel, batch_size: int = 1, target_device=None):
+    def __init__(self, schema: Schema, lm: LanguageModel, batch_size: int = 1, target_device=None, no_cache=False):
         self.schema = schema
         self.lm = lm
         self.cache_l1 = dict()
         self.cache_l2 = dict()
         self.target_device = lm.device if target_device is None else target_device
 
-        self._process(batch_size)
+        if not no_cache:
+            self._process(batch_size)
 
     @torch.inference_mode()
     def _process(self, batch_size: int = 1):
@@ -349,14 +350,19 @@ class CacheEngine:
             target_device=self.target_device
         )
 
-    def add_schema(self, schema: Union[str, Schema], batch_size: int = 1):
+    def add_schema(self, schema: Union[str, Schema],
+                   batch_size: int = 1,
+                   max_tokens: Optional[int] = None,
+                   no_cache: bool = False):
+
         if type(schema) == str:
-            schema = Schema(schema, self.lm)
+            schema = Schema(schema, self.lm, max_tokens=max_tokens)
 
         if schema.name in self.schemas:
             raise ValueError(f'There is already a schema named {schema.name} in the cache')
 
-        self.schemas[schema.name] = SchemaCache(schema, self.lm, batch_size, target_device=self.target_device)
+        self.schemas[schema.name] = SchemaCache(schema, self.lm, batch_size, target_device=self.target_device,
+                                                no_cache=no_cache)
 
     def get_schema(self, name: str) -> Optional[Schema]:
         if name not in self.schemas:
@@ -457,11 +463,12 @@ class CacheEngine:
         # aa = self.lm.hf_tokenizer.tokenize('\n')
         # print('newline,', aa)
 
-        text_token_ids = self.lm.encode(prompt.text)
-        text_position_ids = list(range(len(schema), len(schema) + len(text_token_ids)))
+        if len(prompt.text) > 0:
+            text_token_ids = self.lm.encode(prompt.text)
+            text_position_ids = list(range(len(schema), len(schema) + len(text_token_ids)))
 
-        argument_ids_list.append(text_token_ids)
-        argument_pos_ids_list.append(text_position_ids)
+            argument_ids_list.append(text_token_ids)
+            argument_pos_ids_list.append(text_position_ids)
 
         input_ids = list(itertools.chain(*argument_ids_list))
         position_ids = list(itertools.chain(*argument_pos_ids_list))

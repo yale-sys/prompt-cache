@@ -21,9 +21,9 @@ from promptcache.model import LanguageModel
 @dataclass
 class GenerationParameters:
     temperature: float = 1.0
-    repetition_penalty: float = 1.17
-    top_p: float = 0.95
-    top_k: int = 50
+    repetition_penalty: float = 1.0
+    top_p: float = 1.0
+    top_k: int = -1
     max_new_tokens: int = 256
     stop_token_ids: List[int] = field(default_factory=lambda: [])
     stop_str: List[str] = field(default_factory=lambda: [])
@@ -80,7 +80,7 @@ class GenerationEngine:
         device = self.lm.device
 
         position_offset = max(position_ids) + 1
-
+        print('position offset', position_offset)
         past_key_values = None
         new_token_id = 0
 
@@ -131,6 +131,7 @@ class GenerationEngine:
 
                 else:
                     position_ids = torch.tensor([[position_offset + i]], device=device, dtype=torch.long)
+
                 t1 = time.time()
                 out = self.lm(input_ids=input_ids,
                               position_ids=position_ids,
@@ -148,16 +149,29 @@ class GenerationEngine:
 
             last_token_logits = logits_processor(tmp_output_ids, logits[:, -1, :])[0]
 
+            ccc = []
+
             if params.temperature < 1e-5 or params.top_p < 1e-8:  # greedy
                 new_token_id = int(torch.argmax(last_token_logits))
+                # _, indices = torch.topk(last_token_logits, 2)
+                # ccc = [int(index) for index in indices.tolist()]
+
             else:
                 probs = torch.softmax(last_token_logits, dim=-1)
                 new_token_id = int(torch.multinomial(probs, num_samples=1))
+                # probs = torch.softmax(last_token_logits, dim=-1)
+                # indices = torch.multinomial(probs, num_samples=2)
+                # ccc = [int(token) for token in indices.tolist()]
+
+            # new_token_id = ccc[1]
 
             output_ids.append(new_token_id)
             new_output_ids.append(new_token_id)
 
+            # print(self.lm.decode([new_token_id]))
+
             if new_token_id in params.stop_token_ids:
+                # print('Stopped', self.lm.decode([new_token_id]), self.lm.encode('.</s><s> '))
                 stopped = True
             else:
                 stopped = False

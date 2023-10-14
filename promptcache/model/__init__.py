@@ -168,9 +168,9 @@ class Llama2(LanguageModel):
         model = LlamaForCausalLM.from_pretrained(name, **kwargs)
 
         self.formatter = FormatConversation(
-            system=("<s>[INST] <<SYS>>\n", "<</SYS>>\n\n", "<s>[INST]"),
-            user=(" ", "[/INST]"),
-            assistant=(" ", "</s><s>[INST]"))
+            system=("<s> [INST] <<SYS>>\n", "<</SYS>>\n\n", "<s> [INST] "),
+            user=("", "[/INST]"),
+            assistant=("", "</s><s> [INST] "))
 
         super().__init__(name, model, tokenizer, [tokenizer.eos_token_id])
 

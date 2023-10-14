@@ -158,11 +158,15 @@ class TokenSequence(Element):
     _token_ids: List[int]
     _position_ids: List[int]
 
-    def __init__(self, offset: int, text: str, lm: LanguageModel):
+    def __init__(self, offset: int, text: str, lm: LanguageModel, max_tokens: Optional[int] = None):
         super().__init__(offset)
 
         self.text = text
         self._token_ids = lm.encode(text)
+
+        if max_tokens is not None:
+            self._token_ids = self._token_ids[:max_tokens // 2] + self._token_ids[-max_tokens // 2:]
+
         self._position_ids = list(range(self.offset, self.offset + len(self._token_ids)))
 
     def __len__(self) -> int:
@@ -183,7 +187,7 @@ class UnionModule(Element):
     length: int
     scaffold_name: Optional[str]
 
-    def __init__(self, offset, spec: lxml.etree.Element, lm: LanguageModel):
+    def __init__(self, offset, spec: lxml.etree.Element, lm: LanguageModel, max_tokens: Optional[int] = None):
 
         super().__init__(offset)
 
@@ -191,9 +195,9 @@ class UnionModule(Element):
         self.length = 0
         self.scaffold_name = None
 
-        self._process(spec, lm)
+        self._process(spec, lm, max_tokens)
 
-    def _process(self, root: lxml.etree.Element, lm: LanguageModel):
+    def _process(self, root: lxml.etree.Element, lm: LanguageModel, max_tokens: Optional[int] = None):
 
         assert root.tag == "union"
 
@@ -203,7 +207,7 @@ class UnionModule(Element):
             if e.tag != "module":
                 raise ValueError("Only <module> tags are allowed in union")
 
-            module = Module(self.offset, e, lm)
+            module = Module(self.offset, e, lm, max_tokens=max_tokens)
             self.modules.append(module)
             max_len = max(max_len, len(module))
 
@@ -266,7 +270,8 @@ class Module(Element):
                  offset: int,
                  spec: Union[str, lxml.etree.Element],
                  lm: LanguageModel,
-                 is_root: bool = False):
+                 is_root: bool = False,
+                 max_tokens: Optional[int] = None):
 
         super().__init__(offset)
 
@@ -280,9 +285,9 @@ class Module(Element):
             parser = lxml.etree.XMLParser(recover=True)
             spec = lxml.etree.fromstring(spec, parser=parser)
 
-        self._process(spec, lm)
+        self._process(spec, lm, max_tokens)
 
-    def _process(self, root: lxml.etree.Element, lm: LanguageModel):
+    def _process(self, root: lxml.etree.Element, lm: LanguageModel, max_tokens: Optional[int] = None):
 
         if self._is_root:
             assert root.tag == "schema"
@@ -313,7 +318,7 @@ class Module(Element):
             text = compact_surrounding_spaces(src_path.read_text())
 
             if len(text) > 0:
-                seq = TokenSequence(offset, text, lm)
+                seq = TokenSequence(offset, text, lm, max_tokens=max_tokens)
                 self.children.append(seq)
                 offset += len(seq)
 
@@ -321,14 +326,14 @@ class Module(Element):
         if root.text is not None:
             text = compact_surrounding_spaces(root.text)
             if len(text) > 0:
-                seq = TokenSequence(offset, text, lm)
+                seq = TokenSequence(offset, text, lm, max_tokens=max_tokens)
                 self.children.append(seq)
                 offset += len(seq)
 
         for e in root:
             match e.tag:
                 case "module":
-                    m = Module(offset, e, lm)
+                    m = Module(offset, e, lm, max_tokens=max_tokens)
                     self._contains_union = self._contains_union or m._contains_union
 
                     # check namespace conflicts
@@ -337,7 +342,7 @@ class Module(Element):
                         raise ValueError(f"Module {m.name} is already defined")
 
                 case "union":
-                    m = UnionModule(offset, e, lm)
+                    m = UnionModule(offset, e, lm, max_tokens=max_tokens)
                     self._contains_union = True
                     submodule_names = [c.name for c in self.modules()]
                     for c in m.modules:
@@ -355,7 +360,7 @@ class Module(Element):
                         raise ValueError(f"Parameter {m.name} is already defined")
 
                 case _:
-                    m = TokenSequence(offset, lxml.etree.tostring(e), lm)
+                    m = TokenSequence(offset, lxml.etree.tostring(e), lm, max_tokens=max_tokens)
 
             self.children.append(m)
             offset += len(m)
@@ -364,7 +369,7 @@ class Module(Element):
             if e.tail is not None:
                 text = compact_surrounding_spaces(e.tail)
                 if len(text) > 0:
-                    seq = TokenSequence(offset, text, lm)
+                    seq = TokenSequence(offset, text, lm, max_tokens=max_tokens)
                     self.children.append(seq)
                     offset += len(seq)
 
@@ -522,7 +527,7 @@ class Scaffold(Element):
 class Schema(Module):
     lm: LanguageModel
 
-    def __init__(self, spec: Union[str, lxml.etree.Element], lm: LanguageModel):
-        super().__init__(0, spec, lm, is_root=True)
+    def __init__(self, spec: Union[str, lxml.etree.Element], lm: LanguageModel, max_tokens: Optional[int] = None):
+        super().__init__(0, spec, lm, is_root=True, max_tokens=max_tokens)
 
         self.lm = lm

@@ -27,6 +27,14 @@ def read_file(filename: str, preprocessors: List[Preprocessor] = None) -> str:
         return text
 
 
+def apply_preproc(text: str, preprocessors: List[Preprocessor] = None) -> str:
+    if preprocessors is not None:
+        for p in preprocessors:
+            text = p(text)
+
+    return text
+
+
 def escape_xml(data):
     return xml.sax.saxutils.escape(data, entities={
         "'": "&apos;",
@@ -141,7 +149,7 @@ class Prompt(ModuleRef):
         super().__init__()
         self.args = []
         self.preproc = preproc if preproc is not None else []
-
+        self.text = ""
         if type(spec) == str:
 
             for p in self.preproc:
@@ -185,6 +193,8 @@ class Prompt(ModuleRef):
 
                 if e.tail is not None:
                     self.text = compact_surrounding_spaces(e.tail)
+
+        self.text = self.text.strip()
 
     def add_text(self, text: str):
         for p in self.preproc:
