@@ -262,6 +262,10 @@ class Eval:
                         print(tt, end=" ", flush=True)
                         pre = now
 
+                tt = " ".join(output_text[pre:])
+                print(tt, flush=True)
+                resp += tt
+
                 result = {
                     "cache_time": cache_time,
                     "response_time": response_time,
