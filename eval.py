@@ -1,3 +1,6 @@
+import random
+
+import numpy as np
 import torch.cuda
 import fire
 import sys, json
@@ -54,7 +57,7 @@ class Eval:
                                         target_device=self.lm.device)
         self.gen_engine = GenerationEngine(self.lm)
         self.preproc = [
-            CompactSpaces(),
+            # CompactSpaces(),
             self.lm.get_formatter()
         ]
 
@@ -69,10 +72,10 @@ class Eval:
         # )
 
         self.parameter = GenerationParameters(
-            temperature=0.0,
-            repetition_penalty=1.17,
-            top_p=-1,
-            top_k=1,
+            temperature=1.0,
+            repetition_penalty=1.0,
+            top_p=0.95,
+            top_k=-1,
             max_new_tokens=self.dataset_maxlen[dataset],
             stop_token_ids=self.lm.stop_token_ids,
             stop_str=self.lm.stop_str
@@ -175,7 +178,7 @@ class Eval:
             schema_file_path = os.path.join(SCHEMA_FILE_DIRECTORY, self.dataset.dataset_name, entry.schema)
             print(schema_file_path)
             if True:
-                self.cache_engine.add_schema(read_file(schema_file_path, self.preproc))
+                self.cache_engine.add_schema(read_file(schema_file_path, self.preproc), max_tokens=3500)
 
             prompt = Prompt(entry.prompt, self.preproc)
 
@@ -222,7 +225,8 @@ class Eval:
 
         start = split_count * split[0]
         end = split_count * (split[0] + 1)
-        print(f"Running benchmark on {self.dataset.dataset_name}, start: {start}, end: {end}, batch size: {cache_batch_size}")
+        print(
+            f"Running benchmark on {self.dataset.dataset_name}, start: {start}, end: {end}, batch size: {cache_batch_size}")
 
         for i in range(start, end, cache_batch_size):
             entries = self.dataset.get_query((i, i + cache_batch_size))
@@ -231,7 +235,7 @@ class Eval:
                 schema_file_path = os.path.join(SCHEMA_FILE_DIRECTORY, self.dataset.dataset_name, entry.schema)
                 print(schema_file_path)
                 self.cache_engine.add_schema(read_file(schema_file_path, self.preproc),
-                                             batch_size=self.llm_config.get("schema_load_batch", 1))
+                                             batch_size=self.llm_config.get("schema_load_batch", 1), max_tokens=3500)
 
             for entry in entries:
                 print(entry.prompt)
@@ -278,11 +282,23 @@ class Eval:
             self.cache_engine.remove_all_schemas()
 
 
+def seed_everything(seed):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    torch.cuda.manual_seed_all(seed)
+
+
 def main(llm_config_path: str = os.path.join('./', "config/llm_config_llama2.json"),
-         dataset: str = "2wikimqa", enable_cache=True, cache_batch_size=1, split=(0, 1),
-         test_latency=True,
-         use_cpu_for_inference=True,
+         dataset: str = "narrativeqa", enable_cache=False, cache_batch_size=1, split=(0, 1),
+         test_latency=False,
+         use_cpu_for_inference=False,
          verbose=False):
+    seed_everything(42)
+
     eval = Eval(llm_config_path, dataset, enable_cache, use_cpu_for_inference)
 
     if test_latency:

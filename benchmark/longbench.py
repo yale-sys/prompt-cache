@@ -23,6 +23,9 @@ def escape_tags(input_str):
         return '(' + match.group("content").capitalize() + ')'
 
     return re.sub(pattern, repl, input_str)
+    # return input_str.replace('<', '(').replace('>', ')')
+
+
 class LongBench(Benchmark):
     def __init__(self, subset_name: str):
         super().__init__(subset_name)
@@ -41,27 +44,41 @@ class LongBench(Benchmark):
                     break
                 id = item["_id"]
                 schema_name = f"schema_{id}"
-                builder = XMLSchemaBuilder(schema_name)
-                context = item["context"][:10000]
-                #print(len(context))
-                # title = item["title"]
-                question = item["input"]
-                answer = item["answers"]
-                builder.set_system_description(_system_description)
-                builder.set_user_description(_user_description)
-                builder.add_document_module("context", self.dataset_prompt["context"].format(context=escape_tags(context)))
-                builder.set_assistant_description(_assistant_description)
+
+                fmt_schema = self.dataset_prompt["context"].format(context=escape_tags(item["context"]))
+
+                schema_content = f"""
+<schema name="{schema_name}">
+<system/>
+<user><module name="context">
+{fmt_schema}
+</module>
+</schema>
+"""
+                #
+                #
+                # builder = XMLSchemaBuilder(schema_name)
+                # context = item["context"]
+                # # print(len(context))
+                # # title = item["title"]
+                # question = item["input"]
+                # answer = item["answers"]
+                # builder.set_system_description(_system_description)
+                # builder.set_user_description(_user_description)
+                # builder.add_document_module("context",
+                #                             self.dataset_prompt["context"].format(context=escape_tags(context)))
+                # builder.set_assistant_description(_assistant_description)
 
                 schema_file_name = f"{schema_name}.xml"
                 with open(os.path.join(self.schema_path, schema_file_name), "w") as f:
-                    f.write(builder.generate_xml())
+                    f.write(schema_content)
 
                 prompt = f"""
                 <prompt schema='{schema_name}'>
                 <context/>
-                <user>{self.dataset_prompt["question"].format(input=question)}</user></prompt>
+                {self.dataset_prompt["question"].format(input=escape_tags(item["input"])[:1000])}</user></prompt>
                 """
-                self.entries.append(Entry(schema_file_name, prompt, answer))
+                self.entries.append(Entry(schema_file_name, prompt, item["answers"]))
 
                 count += 1
 
