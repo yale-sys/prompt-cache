@@ -65,7 +65,7 @@ def main():
     logging.info(f"Constructed {len(python_commands)} benchmarks.")
     
     with ThreadPoolExecutor(max_workers=num_gpus) as executor:
-        results = list(executor.map(run_python_command_with_logging, python_commands[-1:]))
+        results = list(executor.map(run_python_command_with_logging, python_commands))
 
 if __name__ == "__main__":
     main()
