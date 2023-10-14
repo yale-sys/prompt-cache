@@ -4,8 +4,6 @@
         "split": "0,1"
     },
     "benchmarks": [
-        {"dataset": "squad_v2"},
-        {"dataset": "ms_marco"},
         {"dataset": "narrativeqa"},
         {"dataset": "qasper"},
         {"dataset": "multifieldqa_en"},
@@ -18,7 +16,9 @@
         {"dataset": "trec"},
         {"dataset": "triviaqa"},
         {"dataset": "passage_count"},
-        {"dataset": "passage_retrieval_en"}
+        {"dataset": "passage_retrieval_en"},
+        {"dataset": "ms_marco"},
+        {"dataset": "squad_v2"}
     ],
     "okay_so_far_benchmarks" :[
     ],

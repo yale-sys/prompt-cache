@@ -149,7 +149,7 @@ class Eval:
                 self.dataset = LongBench("repobench-p")
 
         # for testing purpose, limit the entries to a small number
-        self.dataset.init(limit_entries=10)
+        self.dataset.init(limit_entries=None)
 
         # create result directory
         self.result_directory = os.path.join(BENCHMARK_PATH, "results",

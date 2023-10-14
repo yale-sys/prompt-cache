@@ -38,7 +38,7 @@ class MSMarcoV1(Benchmark):
         schema_file_name = "schema_summary_sample.xml"
         self._generate_xml(limit_entries)
 
-    def _generate_xml(self, limit_entries=10000):
+    def _generate_xml(self, limit_entries=None):
         # Generate xml files
         # - In this version, we build the xml file per entry
         count = 0
