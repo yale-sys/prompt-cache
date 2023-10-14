@@ -33,6 +33,8 @@ def construct_python_commands(default_args, benchmarks, llm_list):
                         continue
                     command += f" --{key} {value}"
                 command += f" --enable_cache {enable_cache}"
+                command += f" --test_latency= False"
+                command += f" --cache_batch_size 1"
                 commands.append(command)
     return commands
 
@@ -63,7 +65,7 @@ def main():
     logging.info(f"Constructed {len(python_commands)} benchmarks.")
     
     with ThreadPoolExecutor(max_workers=num_gpus) as executor:
-        results = list(executor.map(run_python_command_with_logging, python_commands))
+        results = list(executor.map(run_python_command_with_logging, python_commands[-1:]))
 
 if __name__ == "__main__":
     main()

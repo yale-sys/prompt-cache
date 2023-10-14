@@ -95,15 +95,15 @@ class PromptCache:
     device_cache: KVCache
 
     # hidden_dim is usually num_head * head_dim
-    def __init__(self, max_ctx_length: int, num_layers: int, num_head: int, head_dim: int, device: torch.device):
+    def __init__(self, max_ctx_length: int, num_layers: int, num_head: int, head_dim: int, target_device: torch.device):
 
         self.max_ctx_length = max_ctx_length
         self.num_head = num_head
         self.head_dim = head_dim
 
         self.device_cache = [
-            (torch.empty(num_head, max_ctx_length, head_dim, device=device, dtype=torch.half),  # key
-             torch.empty(num_head, max_ctx_length, head_dim, device=device, dtype=torch.half)) for _ in
+            (torch.empty(num_head, max_ctx_length, head_dim, device=target_device, dtype=torch.half),  # key
+             torch.empty(num_head, max_ctx_length, head_dim, device=target_device, dtype=torch.half)) for _ in
             range(num_layers)]
 
         # print(num_head, max_ctx_length, head_dim)
@@ -172,11 +172,12 @@ class SchemaCache:
 
     lm: LanguageModel
 
-    def __init__(self, schema: Schema, lm: LanguageModel, batch_size: int = 1):
+    def __init__(self, schema: Schema, lm: LanguageModel, batch_size: int = 1, target_device=None):
         self.schema = schema
         self.lm = lm
         self.cache_l1 = dict()
         self.cache_l2 = dict()
+        self.target_device = lm.device if target_device is None else target_device
 
         self._process(batch_size)
 
@@ -285,7 +286,7 @@ class SchemaCache:
                             k_cache_tc = k_cache[j, :, st:ed, :].squeeze(0).detach()
                             v_cache_tc = v_cache[j, :, st:ed, :].squeeze(0).detach()
 
-                            if self.lm.device.type != 'cpu':
+                            if self.target_device != 'cpu':
                                 k_cache_tc = k_cache_tc.cpu()
                                 v_cache_tc = v_cache_tc.cpu()
 
@@ -293,7 +294,7 @@ class SchemaCache:
 
                         self.cache_l1[id(tc)] = TokenSequenceCache(tc, tc_cache)
 
-                if self.lm.device.type != 'cpu':
+                if self.target_device != 'cpu':
                     del d_output
 
                 # clear batch
@@ -332,10 +333,11 @@ class CacheEngine:
 
     prompt_cache: PromptCache
 
-    def __init__(self, max_ctx_length: int, lm: LanguageModel):
+    def __init__(self, max_ctx_length: int, lm: LanguageModel, target_device=None):
 
         self.lm = lm
         self.schemas = dict()
+        self.target_device = lm.device if target_device is None else target_device
 
         num_layers, num_head, head_dim = lm.get_cache_shape()
 
@@ -344,7 +346,7 @@ class CacheEngine:
             num_layers=num_layers,
             num_head=num_head,
             head_dim=head_dim,
-            device=lm.device
+            target_device=self.target_device
         )
 
     def add_schema(self, schema: Union[str, Schema], batch_size: int = 1):
@@ -354,7 +356,7 @@ class CacheEngine:
         if schema.name in self.schemas:
             raise ValueError(f'There is already a schema named {schema.name} in the cache')
 
-        self.schemas[schema.name] = SchemaCache(schema, self.lm, batch_size)
+        self.schemas[schema.name] = SchemaCache(schema, self.lm, batch_size, target_device=self.target_device)
 
     def get_schema(self, name: str) -> Optional[Schema]:
         if name not in self.schemas:
@@ -477,7 +479,7 @@ class CacheEngine:
             torch.cuda.synchronize()
             cache_time = start.elapsed_time(end)
 
-            print(f'Cache overhead: {cache_time:.2f} ms')
+            # print(f'Cache overhead: {cache_time:.2f} ms')
 
             vv = list(range(len(orig_position_ids)))
 
@@ -503,7 +505,7 @@ class CacheEngine:
             for i in range(len(cache)):
                 cache[i] = (self.lm.read_k_hook(cache[i][0]), self.lm.read_v_hook(cache[i][1]))
 
-            print(f'Cache overhead: {cache_time:.2f} ms')
+            # print(f'Cache overhead: {cache_time:.2f} ms')
 
             if return_full_position_ids:
                 orig_position_ids = list(itertools.chain(*orig_pos_ids_list))

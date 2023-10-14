@@ -16,29 +16,42 @@ from benchmark.ms_marco_v1_1 import MSMarcoV1
 
 BENCHMARK_PATH = "./benchmark"
 
+
 class Eval:
-    def __init__(self, llm_config_path, dataset, enable_cache):
+    def __init__(self, llm_config_path, dataset, enable_cache, use_cpu_for_inference=False):
         with open("./config/dataset_maxlen.json", 'r') as f:
             self.dataset_maxlen = json.load(f)
 
         with open(llm_config_path, 'r') as f:
             self.llm_config = json.load(f)
         self.enable_cache = enable_cache
+        self.use_cpu_for_inference = use_cpu_for_inference
 
         self.model_name = self.llm_config["name"]
         if "llama" in self.model_name:
             self.model_name = "llama"
-            self.lm = Llama2(**self.llm_config)
+            self.lm_for_caching = Llama2(**self.llm_config)
         elif "falcon" in self.model_name:
             self.model_name = "falcon"
-            self.lm = Falcon(**self.llm_config)
+            self.lm_for_caching = Falcon(**self.llm_config)
         elif "mpt" in self.model_name:
             self.model_name = "mpt"
-            self.lm = Mpt(**self.llm_config)
+            self.lm_for_caching = Mpt(**self.llm_config)
         else:
             raise ValueError("Invalid model name")
 
-        self.cache_engine = CacheEngine(self.llm_config.get("max_ctx_length", 4096), self.lm)
+        if self.use_cpu_for_inference:
+            if "llama" in self.model_name:
+                self.lm = Llama2(name=self.llm_config['name'], device_map=None)
+            elif "falcon" in self.model_name:
+                self.lm = Falcon(name=self.llm_config['name'], device_map=None)
+            elif "mpt" in self.model_name:
+                self.lm = Mpt(name=self.llm_config['name'], device_map=None)
+        else:
+            self.lm = self.lm_for_caching
+
+        self.cache_engine = CacheEngine(self.llm_config.get("max_ctx_length", 4096), self.lm_for_caching,
+                                        target_device=self.lm.device)
         self.gen_engine = GenerationEngine(self.lm)
         self.preproc = [
             CompactSpaces(),
@@ -141,7 +154,7 @@ class Eval:
         # create result directory
         self.result_directory = os.path.join(BENCHMARK_PATH, "results",
                                              f"{self.model_name}-{self.dataset.dataset_name}",
-                                             datetime.datetime.now().strftime("%m-%d-%H-%M-%S"))
+                                             datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         if not os.path.exists(self.result_directory):
             os.makedirs(self.result_directory)
 
@@ -154,13 +167,62 @@ class Eval:
             json.dump(results, f)
             f.write("\n")
 
+    @torch.inference_mode()
+    def run_latency_eval(self):
+
+        for entry in self.dataset.entries:
+
+            schema_file_path = os.path.join(SCHEMA_FILE_DIRECTORY, self.dataset.dataset_name, entry.schema)
+            print(schema_file_path)
+            if True:
+                self.cache_engine.add_schema(read_file(schema_file_path, self.preproc))
+
+            prompt = Prompt(entry.prompt, self.preproc)
+
+            no_cache = not self.enable_cache
+
+            token_ids, position_ids, cache_time, cache = self.cache_engine.process(prompt, no_cache=no_cache,
+                                                                                   return_full_position_ids=self.lm.use_full_position_ids)
+
+            if no_cache:
+                assert cache is None
+
+            input_ids = torch.tensor([token_ids], device=self.lm.device, dtype=torch.long)
+            position_ids = torch.tensor([position_ids], device=self.lm.device, dtype=torch.long)
+            # print(len(position_ids[0]))
+
+            # add redundant batch dim
+            if cache is not None:
+                cache = [(k[0].unsqueeze(0), k[1].unsqueeze(0)) for k in cache]
+
+            start = torch.cuda.Event(enable_timing=True)
+            end = torch.cuda.Event(enable_timing=True)
+
+            start.record()
+            out = self.lm(input_ids=input_ids,
+                          position_ids=position_ids,
+                          past_key_values=cache,
+                          use_cache=True)
+            end.record()
+            torch.cuda.synchronize()
+            response_time = start.elapsed_time(end)
+
+            result = {
+                "cache_time": cache_time,
+                "response_time": response_time,
+            }
+            print(result)
+            self.store_results(result)
+
+            self.cache_engine.remove_all_schemas()
+
     def run(self, cache_batch_size, split, verbose=False):
         entry_count = self.dataset.get_entry_count()
         split_count = entry_count // split[1]
 
         start = split_count * split[0]
         end = split_count * (split[0] + 1)
-        print(f"Running benchmark on {self.dataset.dataset_name}, start: {start}, end: {end}")
+        print(f"Running benchmark on {self.dataset.dataset_name}, start: {start}, end: {end}, batch size: {cache_batch_size}")
 
         for i in range(start, end, cache_batch_size):
             entries = self.dataset.get_query((i, i + cache_batch_size))
@@ -213,9 +275,15 @@ class Eval:
 
 
 def main(llm_config_path: str = os.path.join('./', "config/llm_config_llama2.json"),
-         dataset: str = "2wikimqa", enable_cache=False, cache_batch_size=1, split=(0, 1)):
-    eval = Eval(llm_config_path, dataset, enable_cache)
-    eval.run(cache_batch_size, split)
+         dataset: str = "2wikimqa", enable_cache=True, cache_batch_size=1, split=(0, 1),
+         test_latency=True,
+         use_cpu_for_inference=True):
+    eval = Eval(llm_config_path, dataset, enable_cache, use_cpu_for_inference)
+
+    if test_latency:
+        eval.run_latency_eval()
+    else:
+        eval.run(cache_batch_size, split)
 
 
 if __name__ == "__main__":
