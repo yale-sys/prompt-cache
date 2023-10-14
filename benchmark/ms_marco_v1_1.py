@@ -11,7 +11,7 @@ from .utils import XMLSchemaBuilder
 
 _document_schema_name = "multi_document_qna"
 _document_header = "Document"
-_document_dataset = "train"
+_document_dataset = "test"
 _document_system_description = "Dialogues between a user and an AI about the document provided by the user with the aim of being helpful, aware, and accurate."
 _document_assistant_description = "Sure. I have read the documents separated by comma. Give me any instructions regarding query information based on the documents, and I will try to follow them."
 _document_user_summary = "Among the list of given documents separated by a comma, find the document that is most useful to answer the query and return its index starting at [0]. All documents are unrelated, return [-1]. Do not reply using a complete sentence, and only give the answer in the following format: [1]"  # Take a deep breath and think step-by-step.
