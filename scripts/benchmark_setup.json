@@ -5,7 +5,6 @@
     },
     "benchmarks": [
         {"dataset": "squad_v2"},
-        {"dataset": "multi_news"},
         {"dataset": "ms_marco"},
         {"dataset": "narrativeqa"},
         {"dataset": "qasper"},
@@ -13,23 +12,24 @@
         {"dataset": "hotpotqa"},
         {"dataset": "2wikimqa"},
         {"dataset": "musique"},
-        {"dataset": "dureader"},
         {"dataset": "gov_report"},
         {"dataset": "qmsum"},
         {"dataset": "multi_news_long"},
-        {"dataset": "vcsum"},
         {"dataset": "trec"},
         {"dataset": "triviaqa"},
-        {"dataset": "samsum"},
-        {"dataset": "lsht"},
         {"dataset": "passage_count"},
         {"dataset": "passage_retrieval_en"}
     ],
     "okay_so_far_benchmarks" :[
     ],
     "skipped_benchmarks": [
-        {"dataset": "lcc"},
-        {"dataset": "repobench-p"}
+        {"dataset": "multi_news", "reason": "We will use Longbench version, multi_news_log"},
+        {"dataset": "lcc", "reason": "code syntax interferes with xml syntax of prompt cache"},
+        {"dataset": "repobench-p", "reason": "code syntax interferes with xml syntax of prompt cache"},
+        {"dataset": "samsum", "reason": "code syntax interferes with xml syntax of prompt cache"},
+        {"dataset": "lsht", "reason": "out of memory"},
+        {"dataset": "vcsum", "reason": "out of memory"},
+        {"dataset": "dureader", "reason": "out of memory"}
     ],
     "llm_list": [
         {
