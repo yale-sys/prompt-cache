@@ -1,7 +1,7 @@
 import fire
 import json
 
-from dependency.LongBench.metrics import (
+from metrics import (
     qa_f1_score,
     rouge_zh_score,
     qa_f1_zh_score,
@@ -37,6 +37,7 @@ dataset2metric = {
     "repobench-p": code_sim_score,
 }
 
+
 def main(result_file):
     dataset_name = result_file.split('/')[-3].split('-')[1]
     with open(result_file, 'r') as f:
@@ -44,12 +45,16 @@ def main(result_file):
         results = [json.loads(line) for line in f]
         total_score = 0.
         for result in results:
+            response = result["response"].split('</s>')[0]
+            answers = result["answers"]
+
             score = 0.
-            for answer in result['answers']:
-                score = max(score, dataset2metric[dataset_name](result["response"], answer))
+            for answer in answers:
+                score = max(score, dataset2metric[dataset_name](response, answer))
 
             total_score += score
         print(total_score / len(results) * 100)
+
 
 if __name__ == '__main__':
     fire.Fire(main)

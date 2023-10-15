@@ -80,7 +80,6 @@ class GenerationEngine:
         device = self.lm.device
 
         position_offset = max(position_ids) + 1
-        print('position offset', position_offset)
         past_key_values = None
         new_token_id = 0
 
