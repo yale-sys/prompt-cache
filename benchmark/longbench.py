@@ -76,7 +76,7 @@ class LongBench(Benchmark):
                 prompt = f"""
                 <prompt schema='{schema_name}'>
                 <context/>
-                {self.dataset_prompt["question"].format(input=escape_tags(item["input"])[:1000])}</user></prompt>
+                {self.dataset_prompt["question"].format(input=escape_tags(item["input"])[:1000])}</user><assistant>{self.dataset_prompt["answer"]}</prompt>
                 """
                 self.entries.append(Entry(schema_file_name, prompt, item["answers"]))
 

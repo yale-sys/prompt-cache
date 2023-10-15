@@ -1,5 +1,6 @@
 {
-    "name": "tiiuae/falcon-7b-instruct",
-    "load_in_8bit": true,
-    "device_map": "auto"
+  "name": "h2oai/h2ogpt-gm-oasst1-en-2048-falcon-7b-v2",
+  "load_in_8bit": true,
+  "device_map": "auto",
+  "max_tokens": 1500
 }

@@ -6,7 +6,7 @@ import fire
 import sys, json
 import os
 import datetime
-
+from tqdm import tqdm
 from benchmark.longbench import LongBench
 from promptcache.model import Llama2, Falcon, Mpt
 from promptcache import Prompt, CompactSpaces, read_file, CacheEngine, \
@@ -33,13 +33,13 @@ class Eval:
         self.model_name = self.llm_config["name"]
         if "llama" in self.model_name:
             self.model_name = "llama"
-            self.lm_for_caching = Llama2(**self.llm_config)
+            self.lm_for_caching = Llama2(name=self.llm_config['name'], device_map="auto", load_in_8bit=True)
         elif "falcon" in self.model_name:
             self.model_name = "falcon"
-            self.lm_for_caching = Falcon(**self.llm_config)
+            self.lm_for_caching = Falcon(name=self.llm_config['name'], device_map="auto", load_in_8bit=True)
         elif "mpt" in self.model_name:
             self.model_name = "mpt"
-            self.lm_for_caching = Mpt(**self.llm_config)
+            self.lm_for_caching = Mpt(name=self.llm_config['name'], device_map="auto", load_in_8bit=True)
         else:
             raise ValueError("Invalid model name")
 
@@ -228,14 +228,15 @@ class Eval:
         print(
             f"Running benchmark on {self.dataset.dataset_name}, start: {start}, end: {end}, batch size: {cache_batch_size}")
 
-        for i in range(start, end, cache_batch_size):
+        for i in tqdm(range(start, end, cache_batch_size)):
             entries = self.dataset.get_query((i, i + cache_batch_size))
             # load schema for `cache_batch_size` entries
             for entry in entries:
                 schema_file_path = os.path.join(SCHEMA_FILE_DIRECTORY, self.dataset.dataset_name, entry.schema)
                 print(schema_file_path)
                 self.cache_engine.add_schema(read_file(schema_file_path, self.preproc),
-                                             batch_size=self.llm_config.get("schema_load_batch", 1), max_tokens=3500)
+                                             batch_size=self.llm_config.get("schema_load_batch", 1),
+                                             max_tokens=self.llm_config.get("max_tokens", 3500))
 
             for entry in entries:
                 print(entry.prompt)

@@ -1,12 +1,12 @@
 .PHONY: eval
 
-LLM_CONFIG_PATH ?= ./config/llm_config_llama2.json
+LLM_CONFIG_PATH ?= ./config/llm_config_falcon.json
 # LLM_CONFIG_PATH ?= ./config/llm_config_llama2_13b.json
 # DATASET ?= squad_v2
 # DATASET ?= multi_news
 # DATASET ?= ms_marco
 DATASET ?= narrativeqa
-ENABLE_CACHE ?= True
+ENABLE_CACHE ?= False
 SPLIT ?= 0,1
 TEST_LATENCY ?= False
 USE_CPU_FOR_INFERENCE ?= False
