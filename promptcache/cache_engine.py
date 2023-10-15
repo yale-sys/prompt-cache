@@ -263,7 +263,7 @@ class SchemaCache:
                     path, scaffold = batch_path[j]
                     position_ids = batch_position_ids[j]
 
-                    print(f"Caching module @{self.schema.name}/{path} ({len(position_ids)} tokens)...")
+                    #print(f"Caching module @{self.schema.name}/{path} ({len(position_ids)} tokens)...")
 
                     target = scaffold.select(path)
 

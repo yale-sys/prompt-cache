@@ -18,4 +18,5 @@ eval:
 		--split $(SPLIT) \
 		--test_latency= $(TEST_LATENCY) \
 		--use_cpu_for_inference $(USE_CPU_FOR_INFERENCE) \
-		--cache_batch_size 1
+		--cache_batch_size 1 \
+		--verbose False

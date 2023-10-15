@@ -16,14 +16,14 @@ _assistant_description = "Sure. I have read the document. Please give me any que
 
 
 def escape_tags(input_str):
-    pattern = r'<(?P<content>.*?)>'
+    # pattern = r'<(?P<content>.*?)>'
 
-    # The lambda function ensures only the first letter is capitalized
-    def repl(match):
-        return '(' + match.group("content").capitalize() + ')'
-
-    return re.sub(pattern, repl, input_str)
-    # return input_str.replace('<', '(').replace('>', ')')
+    # # The lambda function ensures only the first letter is capitalized
+    # def repl(match):
+    #     return '(' + match.group("content").capitalize() + ')'
+    #
+    # return re.sub(pattern, repl, input_str)
+    return input_str.replace('<', '(').replace('>', ')')
 
 
 class LongBench(Benchmark):
