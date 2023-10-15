@@ -1,3 +1,5 @@
+import gc
+
 import torch.cuda
 import fire
 import sys, json
@@ -27,13 +29,13 @@ class Eval:
         self.model_name = self.llm_config["name"]
         if "llama" in self.model_name:
             self.model_name = "llama"
-            self.lm_for_caching = Llama2(**self.llm_config)
+            self.lm_for_caching = Llama2(name=self.llm_config['name'], device_map="auto", load_in_8bit=True)
         elif "falcon" in self.model_name:
             self.model_name = "falcon"
-            self.lm_for_caching = Falcon(**self.llm_config)
+            self.lm_for_caching = Falcon(name=self.llm_config['name'], device_map="auto", load_in_8bit=True)
         elif "mpt" in self.model_name:
             self.model_name = "mpt"
-            self.lm_for_caching = Mpt(**self.llm_config)
+            self.lm_for_caching = Mpt(name=self.llm_config['name'], device_map="auto", load_in_8bit=True)
         else:
             raise ValueError("Invalid model name")
 
@@ -77,48 +79,133 @@ class Eval:
         }
 
     # recomputation overhead vs mem trasnfer overhead
-    # @torch.inference_mode()
-    # def run_critical_point(self):
-    #
-    #     NUM_LAYERS = 30
-    #     CACHE_DIM = (40, SEQ_LEN, 128)
-    #
-    #     def create_cache(device, seq_len):
-    #
-    #         return [(torch.rand((40, seq_len, 128), dtype=torch.float16, device=device),
-    #                  torch.rand((40, seq_len, 128), dtype=torch.float16, device=device)) for _ in
-    #                 range(30)]
-    #
-    #     for seq_len in range(5000):
-    #
-    #     def benchmark_transfer(src_cache, dst_cache, description):
-    #         start_time = time.time()
-    #         for src, dst in zip(src_cache, dst_cache):
-    #             dst[0].copy_(src[0], non_blocking=True)
-    #             dst[1].copy_(src[0], non_blocking=True)
-    #         torch.cuda.synchronize()  # Ensure CUDA operations are synchronized
-    #         elapsed = (time.time() - start_time) / NUM_LAYERS
-    #         print(f"{description} Average Latency: {elapsed * 1000:.2f} milliseconds")
-    #
-    #     input_ids = torch.tensor([token_ids], device=self.lm.device, dtype=torch.long)
-    #     position_ids = torch.tensor([position_ids], device=self.lm.device, dtype=torch.long)
-    #     # print(len(position_ids[0]))
-    #
-    #     # add redundant batch dim
-    #     if cache is not None:
-    #         cache = [(k[0].unsqueeze(0), k[1].unsqueeze(0)) for k in cache]
-    #
-    #     start = torch.cuda.Event(enable_timing=True)
-    #     end = torch.cuda.Event(enable_timing=True)
-    #
-    #     start.record()
-    #     out = self.lm(input_ids=input_ids,
-    #                   position_ids=position_ids,
-    #                   past_key_values=cache,
-    #                   use_cache=True)
-    #     end.record()
-    #     torch.cuda.synchronize()
-    #     response_time = start.elapsed_time(end)
+    @torch.inference_mode()
+    def run_critical_point(self):
+
+        def create_cache(seq_len):
+
+
+            # # llama 2 13B
+            num_layers = 40
+            num_heads = 40
+            head_dim = 128
+
+            # # llama 2 7B
+            # num_layers = 32
+            # num_heads = 32
+            # head_dim = 128
+
+            return [(torch.rand((num_heads, seq_len, head_dim), dtype=torch.float16, device='cpu'),
+                     torch.rand((num_heads, seq_len, head_dim), dtype=torch.float16, device='cpu')) for _ in
+                    range(num_layers)]
+
+        test_seq_len = [
+            1,
+            2,
+            4,
+            8,
+            16,
+            32,
+            64,
+            128,
+            256,
+            512,
+            512 + 128 * 1,
+            512 + 128 * 2,
+            512 + 128 * 3,
+            1024,
+            1024 + 256 * 1,
+            1024 + 256 * 2,
+            1024 + 256 * 3,
+            2048,
+            2028 + 512 * 1,
+            2028 + 512 * 2,
+            2028 + 512 * 3,
+            # 4096,
+            # 4096 + 1024 * 1,
+            # 4096 + 1024 * 2,
+
+        ]
+
+        results = []
+
+        for seq_len in tqdm(test_seq_len):
+            ## 1. compute gpu upload time
+            kv_cache = create_cache(seq_len)
+
+            torch.cuda.synchronize()
+            start = torch.cuda.Event(enable_timing=True)
+            end = torch.cuda.Event(enable_timing=True)
+
+            start.record()
+            # upload everything to GPU
+            kv_cache_gpu = [
+                (k[0].to('cuda', non_blocking=True, copy=True), k[1].to('cuda', non_blocking=True, copy=True))
+                for k in kv_cache]
+
+            end.record()
+            torch.cuda.synchronize()
+            gpu_upload_time = start.elapsed_time(end)
+
+            del kv_cache_gpu, kv_cache
+            gc.collect()
+            torch.cuda.empty_cache()
+
+            results.append({
+                "seq_len": seq_len,
+                "time": gpu_upload_time,
+            })
+
+        result_path = os.path.join(BENCHMARK_PATH, "results_latency")
+
+        with open(os.path.join(result_path, f"{self.model_name}-critical_point-upload.json"),
+                  "w") as f:
+            json.dump(
+                {
+                    'model_name': self.model_name,
+                    'results': results
+                }, f)
+
+        results = []
+        ## 2. compute recomputation time
+        for seq_len in tqdm(test_seq_len):
+            token_ids = [100] * seq_len
+            position_ids = list(range(seq_len))
+
+            input_ids = torch.tensor([token_ids], device=self.lm.device, dtype=torch.long)
+            position_ids = torch.tensor([position_ids], device=self.lm.device, dtype=torch.long)
+
+            start = torch.cuda.Event(enable_timing=True)
+            end = torch.cuda.Event(enable_timing=True)
+
+            start.record()
+            out = self.lm(input_ids=input_ids,
+                          position_ids=position_ids,
+                          past_key_values=None,
+                          use_cache=False)
+
+            end.record()
+            torch.cuda.synchronize()
+            recomputation_time = start.elapsed_time(end)
+
+            del out
+            gc.collect()
+            torch.cuda.empty_cache()
+
+            results.append({
+                "seq_len": seq_len,
+                "time": recomputation_time
+            })
+
+        result_path = os.path.join(BENCHMARK_PATH, "results_latency")
+
+        with open(os.path.join(result_path, f"{self.model_name}-critical_point-recomputation.json"),
+                  "w") as f:
+            json.dump(
+                {
+                    'model_name': self.model_name,
+                    'results': results
+                }, f)
 
     @torch.inference_mode()
     def run_latency_eval(self):
@@ -126,7 +213,7 @@ class Eval:
         for dataset_name in self.dataset_list:
 
             dataset = self.dataset_list[dataset_name]
-            dataset.init(limit_entries=None)
+            dataset.init(limit_entries=5)
 
             # create result directory
             device_used = "cpu" if self.use_cpu_for_inference else "gpu"
@@ -195,12 +282,12 @@ class Eval:
                 f.write("\n")
 
 
-def main(llm_config_path: str = os.path.join('./', "config/llm_config_llama2.json"),
+def main(llm_config_path: str = os.path.join('./', "config/llm_config_llama2_13b.json"),
          enable_cache=True,
          use_cpu_for_inference=False):
     eval = Eval(llm_config_path, enable_cache, use_cpu_for_inference)
 
-    eval.run_latency_eval()
+    eval.run_critical_point()
 
 
 if __name__ == "__main__":
