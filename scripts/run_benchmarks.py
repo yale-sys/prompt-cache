@@ -5,6 +5,9 @@ import os
 import sys
 import datetime
 from concurrent.futures import ThreadPoolExecutor
+import threading
+import queue
+
 
 def detect_nvidia_gpus():
     try:
@@ -38,18 +41,35 @@ def construct_python_commands(default_args, benchmarks, llm_list):
                 commands.append(command)
     return commands
 
-def run_python_command_with_logging(command):
+def run_python_command_with_logging(paired_command):
+    command, gpu_id = paired_command
     try:
-        # parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(sys.argv[0])))
-        # os.chdir(parent_dir)
-        # logging.info(f"Changed working directory to {parent_dir}")
-        
-        subprocess.run("cd .. && " + command, shell=True, check=True)
+        env_command = f"CUDA_VISIBLE_DEVICES={gpu_id} " + command
+        # subprocess.run("cd .. && " + env_command, shell=True, check=True)
         logging.info(f"Command {command} completed successfully.")
         return True
     except subprocess.CalledProcessError as e:
         logging.error(f"Command {command} failed: {e}")
         return False
+    
+
+global python_commands_list
+def gpu_worker(gpu_id, command_lock):
+    while True:
+        with command_lock:
+            global next_command_index
+            if next_command_index >= len(python_commands_list):
+                return  # All commands are executed, so exit the thread
+            command = python_commands_list[next_command_index]
+            next_command_index += 1
+        
+        env_command = f"CUDA_VISIBLE_DEVICES={gpu_id} " + command
+        try:
+            subprocess.run("cd .. && " + env_command, shell=True, check=True)
+            logging.info(f"Worker using GPU {gpu_id}: Command {command} completed successfully.")
+        except subprocess.CalledProcessError as e:
+            logging.error(f"Worker using GPU {gpu_id}: Command {command} failed: {e}")
+
 
 def main():
     # logging.basicConfig(level=logging.INFO)
@@ -61,13 +81,22 @@ def main():
     args_dict = read_args_from_json("benchmark_setup.json")
     
     # Construct the Python commands
-    python_commands = construct_python_commands(args_dict["default"], args_dict["benchmarks"], args_dict["llm_list"])
-    logging.info(f"Constructed {len(python_commands)} benchmarks.")
-    for pc in python_commands:
-        print(pc)
+    python_commands_list = construct_python_commands(args_dict["default"], args_dict["benchmarks"], args_dict["llm_list"])
+    logging.info(f"Constructed {len(python_commands_list)} benchmarks.")
 
-    with ThreadPoolExecutor(max_workers=num_gpus) as executor:
-        results = list(executor.map(run_python_command_with_logging, python_commands))
+    global next_command_index
+    next_command_index = 0
+    command_lock = threading.Lock()
+    # Start a thread for each GPU
+    threads = []
+    for gpu_id in range(num_gpus):
+        t = threading.Thread(target=gpu_worker, args=(gpu_id, command_lock))
+        t.start()
+        threads.append(t)
+    
+    # Wait for all threads to finish
+    for t in threads:
+        t.join()
 
 if __name__ == "__main__":
     main()

@@ -16,10 +16,10 @@
         {"dataset": "trec"},
         {"dataset": "triviaqa"},
         {"dataset": "passage_count"},
-        {"dataset": "passage_retrieval_en"},
-        {"dataset": "squad_v2"}
+        {"dataset": "passage_retrieval_en"}
     ],
     "okay_so_far_benchmarks" :[
+        {"dataset": "squad_v2"}
     ],
     "skipped_benchmarks": [
         {"dataset": "multi_news", "reason": "We will use Longbench version, multi_news_log"},
