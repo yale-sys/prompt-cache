@@ -11,12 +11,11 @@ SPLIT ?= 0,1
 TEST_LATENCY ?= False
 USE_CPU_FOR_INFERENCE ?= False
 eval:
-	python3 eval.py \
+	CUDA_VISIBLE_DEVICES=0 python3 eval.py \
 		--llm_config_path $(LLM_CONFIG_PATH) \
 		--dataset $(DATASET) \
 		--enable_cache $(ENABLE_CACHE) \
 		--split $(SPLIT) \
-		--test_latency= $(TEST_LATENCY) \
+		--test_latency $(TEST_LATENCY) \
 		--use_cpu_for_inference $(USE_CPU_FOR_INFERENCE) \
-		--cache_batch_size 1 \
 		--verbose False

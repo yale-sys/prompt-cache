@@ -33,7 +33,7 @@ def construct_python_commands(default_args, benchmarks, llm_list):
                         continue
                     command += f" --{key} {value}"
                 command += f" --enable_cache {enable_cache}"
-                command += f" --test_latency= False"
+                command += f" --test_latency False"
                 command += f" --cache_batch_size 1"
                 commands.append(command)
     return commands
@@ -63,7 +63,9 @@ def main():
     # Construct the Python commands
     python_commands = construct_python_commands(args_dict["default"], args_dict["benchmarks"], args_dict["llm_list"])
     logging.info(f"Constructed {len(python_commands)} benchmarks.")
-    
+    for pc in python_commands:
+        print(pc)
+
     with ThreadPoolExecutor(max_workers=num_gpus) as executor:
         results = list(executor.map(run_python_command_with_logging, python_commands))
 

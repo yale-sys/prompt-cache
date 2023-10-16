@@ -152,7 +152,7 @@ class Eval:
                 self.dataset = LongBench("repobench-p")
 
         # for testing purpose, limit the entries to a small number
-        self.dataset.init(limit_entries=None)
+        self.dataset.init(limit_entries=100)
 
         # create result directory
         self.result_directory = os.path.join(BENCHMARK_PATH, "results",
@@ -219,18 +219,16 @@ class Eval:
 
             self.cache_engine.remove_all_schemas()
 
-    def run(self, cache_batch_size, split, verbose=False):
+    def run(self, split, verbose=False):
         entry_count = self.dataset.get_entry_count()
         split_count = entry_count // split[1]
 
         start = split_count * split[0]
         end = split_count * (split[0] + 1)
-        print(
-            f"Running benchmark on {self.dataset.dataset_name}, start: {start}, end: {end}, batch size: {cache_batch_size}")
+        print(f"Running benchmark on {self.dataset.dataset_name}, start: {start}, end: {end}")
 
-        for i in tqdm(range(start, end, cache_batch_size)):
-            entries = self.dataset.get_query((i, i + cache_batch_size))
-            # load schema for `cache_batch_size` entries
+        for i in tqdm(range(start, end)):
+            entries = self.dataset.get_query((i, i + 1))
             for entry in entries:
                 schema_file_path = os.path.join(SCHEMA_FILE_DIRECTORY, self.dataset.dataset_name, entry.schema)
                 print(schema_file_path)
@@ -294,7 +292,7 @@ def seed_everything(seed):
 
 
 def main(llm_config_path: str = os.path.join('./', "config/llm_config_llama2.json"),
-         dataset: str = "narrativeqa", enable_cache=False, cache_batch_size=1, split=(0, 1),
+         dataset: str = "narrativeqa", enable_cache=False, split=(0, 1),
          test_latency=False,
          use_cpu_for_inference=False,
          verbose=False):
@@ -305,8 +303,7 @@ def main(llm_config_path: str = os.path.join('./', "config/llm_config_llama2.jso
     if test_latency:
         eval.run_latency_eval()
     else:
-        eval.run(cache_batch_size, split, verbose)
-
+        eval.run(split, verbose)
 
 if __name__ == "__main__":
     fire.Fire(main)

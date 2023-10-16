@@ -1,6 +1,6 @@
 {
     "default": {
-        "llm_config_path": "./config/mpt.json",
+        "llm_config_path": "./config/llm_config_llama2.json",
         "split": "0,1"
     },
     "benchmarks": [
@@ -17,7 +17,6 @@
         {"dataset": "triviaqa"},
         {"dataset": "passage_count"},
         {"dataset": "passage_retrieval_en"},
-        {"dataset": "ms_marco"},
         {"dataset": "squad_v2"}
     ],
     "okay_so_far_benchmarks" :[
@@ -29,7 +28,8 @@
         {"dataset": "samsum", "reason": "code syntax interferes with xml syntax of prompt cache"},
         {"dataset": "lsht", "reason": "out of memory"},
         {"dataset": "vcsum", "reason": "out of memory"},
-        {"dataset": "dureader", "reason": "out of memory"}
+        {"dataset": "dureader", "reason": "out of memory"},
+        {"dataset": "ms_marco", "reason": "bad output"}
     ],
     "llm_list": [
         {
