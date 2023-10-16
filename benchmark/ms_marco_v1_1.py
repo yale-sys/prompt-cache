@@ -11,20 +11,19 @@ from .utils import XMLSchemaBuilder
 
 _document_schema_name = "multi_document_qna"
 _document_header = "Document"
-_document_dataset = "test"
+_document_dataset = "validation"
 _document_system_description = "Dialogues between a user and an AI about the document provided by the user with the aim of being helpful, aware, and accurate."
 _document_assistant_description = "Sure. I have read the documents separated by comma. Give me any instructions regarding query information based on the documents, and I will try to follow them."
 _document_user_summary = "Among the list of given documents separated by a comma, find the document that is most useful to answer the query and return its index starting at [0]. All documents are unrelated, return [-1]. Do not reply using a complete sentence, and only give the answer in the following format: [1]"  # Take a deep breath and think step-by-step.
 
 MAX_DOCUMENT_LENGTH = 2560
 
-
 class MSMarcoV1(Benchmark):
     def __init__(self):
         super().__init__("ms_marco")
         self.next_query_idx = 0
 
-    def init(self, limit_entries=0, verbose=False):
+    def init(self, limit_entries=None, verbose=False):
         """
         Download (one time) and load the dataset to run; 
         Do any preprocessing required for running this benchmark.
@@ -38,7 +37,7 @@ class MSMarcoV1(Benchmark):
         schema_file_name = "schema_summary_sample.xml"
         self._generate_xml(limit_entries)
 
-    def _generate_xml(self, limit_entries=None):
+    def _generate_xml(self, limit_entries):
         # Generate xml files
         # - In this version, we build the xml file per entry
         count = 0
@@ -113,3 +112,9 @@ class MSMarcoV1(Benchmark):
         assert response_from_llm != ""
         raise NotImplementedError(
             "This method should call utility function to measure how the response is closer to the expected answer.")
+
+if __name__ == '__main__':
+    msm = MSMarcoV1()
+    msm.init()
+    print(msm.get_entry_count())
+    print(msm.get_query((0, 1)))
