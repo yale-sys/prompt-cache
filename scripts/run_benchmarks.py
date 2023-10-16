@@ -80,6 +80,7 @@ def main():
     # Read arguments from JSON file
     args_dict = read_args_from_json("benchmark_setup.json")
     
+    global python_commands_list
     # Construct the Python commands
     python_commands_list = construct_python_commands(args_dict["default"], args_dict["benchmarks"], args_dict["llm_list"])
     logging.info(f"Constructed {len(python_commands_list)} benchmarks.")
