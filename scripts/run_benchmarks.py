@@ -77,11 +77,6 @@ def main():
     python_commands_list = construct_python_commands(args_dict["default"], args_dict["benchmarks"], args_dict["llm_list"])
     logging.info(f"Constructed {len(python_commands_list)} benchmarks.")
 
-    for pc in python_commands_list:
-        logging.info(pc)
-
-    return
-
     global next_command_index
     next_command_index = 0
     command_lock = threading.Lock()
