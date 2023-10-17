@@ -7,7 +7,7 @@ import torch.cuda
 import fire
 from datasets import load_dataset
 
-from promptcache.model import Llama2, Falcon, Mpt
+from promptcache.model import Llama2, Falcon, Mpt, CodeLlama
 from transformers import (
     AutoTokenizer, LlamaForCausalLM, LlamaTokenizer,
 )
@@ -38,14 +38,18 @@ def main(enable_cache=True):
 
     ######################
 
-    lm_for_cache = Llama2("meta-llama/Llama-2-7b-chat-hf",
-                          load_in_8bit=True,
-                          device_map="auto")
+    # lm_for_cache = Llama2("meta-llama/Llama-2-13b-chat-hf",
+    #                       load_in_8bit=True,
+    #                       device_map="auto")
+
+    lm_for_cache = CodeLlama("codellama/CodeLlama-13b-Instruct-hf",
+                             load_in_8bit=True,
+                             device_map="auto")
 
     lm = lm_for_cache
 
     if enable_cpu_inference:
-        lm = Llama2("meta-llama/Llama-2-7b-chat-hf",
+        lm = Llama2("meta-llama/Llama-2-13b-chat-hf",
                     load_in_8bit=False,
                     device_map=None)
 
@@ -62,19 +66,19 @@ def main(enable_cache=True):
     #                                          load_in_8bit=True if not disable_cuda else False,
     #                                          device_map="auto" if not disable_cuda else None)
 
-    dataset = load_dataset('THUDM/LongBench', 'narrativeqa', split='test')
+    # dataset = load_dataset('THUDM/LongBench', 'narrativeqa', split='test')
+    #
+    # sample = dataset[5]
+    #
+    # sample_context = escape_tags(sample["context"])
+    # sample_input = sample["input"]
+    #
+    #     schema = f"""
+    # <schema name="qa"><module name="context"><system/><user>You are given a story, which can be either a novel or a movie script, and a question. Answer the question as
+    # concisely as you can, using a single phrase if possible. Do not provide any explanation.\n\nStory:{sample_context}</module></schema>
+    #     """
 
-    sample = dataset[5]
-
-    sample_context = escape_tags(sample["context"])
-    sample_input = sample["input"]
-
-    schema = f"""
-<schema name="qa"><module name="context"><system/><user>You are given a story, which can be either a novel or a movie script, and a question. Answer the question as 
-concisely as you can, using a single phrase if possible. Do not provide any explanation.\n\nStory:{sample_context}</module></schema>
-    """
-
-    cache_engine = CacheEngine(5000, lm_for_cache)
+    cache_engine = CacheEngine(7000, lm_for_cache)
     gen_engine = GenerationEngine(lm)
 
     preproc = [
@@ -86,8 +90,10 @@ concisely as you can, using a single phrase if possible. Do not provide any expl
     # torch.cuda.synchronize()
     # print(f'Mem: {torch.cuda.memory_allocated(0) / (1e6):.2f} MB')
 
-    # cache_engine.add_schema(read_file("./benchmark/schema/test/schema_mbti.xml", preproc))
-    cache_engine.add_schema(apply_preproc(schema, preproc), max_tokens=3500)
+    cache_engine.add_schema(read_file("./examples/code_generation_game.xml", preproc))
+    #cache_engine.add_schema(read_file("./examples/personalization-education.xml", preproc))
+
+    # cache_engine.add_schema(apply_preproc(schema, preproc), max_tokens=3500)
 
     # torch.cuda.synchronize()
     # print(f'Mem: {torch.cuda.memory_allocated(0) / (1e6):.2f} MB')
@@ -103,10 +109,31 @@ concisely as you can, using a single phrase if possible. Do not provide any expl
     )
 
     prompt_text = f"""
-        <prompt schema='qa'><context/>
-        Now, answer the question based on the story as concisely as you can, using a single phrase if possible. 
-Do not provide any explanation.\n\nQuestion: {sample_input}\n\nAnswer:</user></prompt>
+        <prompt schema='code-generation-game'>
+        <unit.py/>
+        <map.py/>
+        <player.py/>
+        <game.py/>
+        <database.py/>
+        <user>
+            Create a main entry for the game:
+        </user>
+        </prompt>
         """
+    #
+    # prompt_text = f"""
+    #     <prompt schema='personalization-education'>
+    #     <middle-school/>
+    #     <beginner/>
+    #     <studied-a-year-before/>
+    #     <auditory/>
+    #     <essay/>
+    #     <high-intrinsic-motivation/>
+    #     <user>
+    #         Concisely describe the learner:
+    #     </user>
+    #     </prompt>
+    #     """
 
     prompt = Prompt(prompt_text, preproc)
     ##print(prompt)

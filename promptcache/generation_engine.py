@@ -121,22 +121,25 @@ class GenerationEngine:
             else:
                 # upload to the GPU
                 input_ids = torch.tensor([[new_token_id]], device=device, dtype=torch.long)
-                # position_ids = torch.tensor([[position_offset + i]], device=device, dtype=torch.long)
 
                 if use_full_position_ids:
-
                     position_ids = torch.tensor([position_ids_og + list(range(position_offset, position_offset + i))],
                                                 device=device, dtype=torch.long)
 
                 else:
                     position_ids = torch.tensor([[position_offset + i]], device=device, dtype=torch.long)
 
-                t1 = time.time()
+                start = torch.cuda.Event(enable_timing=True)
+                end = torch.cuda.Event(enable_timing=True)
+
+                start.record()
                 out = self.lm(input_ids=input_ids,
                               position_ids=position_ids,
                               past_key_values=past_key_values,
                               use_cache=True)
-                inference_time += time.time() - t1
+                end.record()
+                torch.cuda.synchronize()
+                inference_time += start.elapsed_time(end)
 
                 logits = out.logits
                 past_key_values = out.past_key_values
@@ -184,7 +187,7 @@ class GenerationEngine:
                 for each_stop in params.stop_str:
                     pos = new_output.rfind(each_stop, 0)
                     if pos != -1:
-                        output = output[:pos]
+                        new_output = new_output[:pos]
                         stopped = True
                         break
                     else:

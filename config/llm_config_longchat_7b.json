@@ -1,0 +1,9 @@
+{
+  "arch": "longchat",
+  "log_name": "longchat-7b",
+  "name": "lmsys/longchat-7b-v1.5-32k",
+  "load_in_8bit": true,
+  "device_map": "auto",
+  "max_tokens": 8000,
+  "max_ctx_length": 9186
+}

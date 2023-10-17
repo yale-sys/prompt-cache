@@ -241,8 +241,8 @@ class UnionModule(Element):
 
     def select(self, path: Union[str, Path]) -> Optional[Module]:
         #
-        # if path is None:
-        #     return self.select(self.scaffold_name)
+        if path is None:
+            return None
 
         if type(path) == str:
             path = Path(path)

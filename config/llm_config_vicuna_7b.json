@@ -1,0 +1,9 @@
+{
+  "arch": "vicuna",
+  "log_name": "vicuna-7b",
+  "name": "lmsys/vicuna-7b-v1.5-16k",
+  "load_in_8bit": true,
+  "device_map": "auto",
+  "max_tokens": 8000,
+  "max_ctx_length": 9000
+}

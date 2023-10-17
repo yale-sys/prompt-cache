@@ -14,6 +14,7 @@ from promptcache import Prompt, CompactSpaces, read_file, CacheEngine, \
 from benchmark.benchmark_base import SCHEMA_FILE_DIRECTORY
 
 BENCHMARK_PATH = "./benchmark"
+from torch.profiler import profile, record_function, ProfilerActivity
 
 
 class Eval:
@@ -78,12 +79,18 @@ class Eval:
             "repobench-p": LongBench("repobench-p")
         }
 
+    # @torch.inference_mode()
+    # def profile_cpu_inference(self):
+    #
+    #     with profile(activities=[ProfilerActivity.CPU], record_shapes=True) as prof:
+    #         with record_function("model_inference"):
+    #             model(inputs)
+
     # recomputation overhead vs mem trasnfer overhead
     @torch.inference_mode()
     def run_critical_point(self):
 
         def create_cache(seq_len):
-
 
             # # llama 2 13B
             num_layers = 40
@@ -250,6 +257,9 @@ class Eval:
                 end = torch.cuda.Event(enable_timing=True)
 
                 start.record()
+
+                # with profile(activities=[ProfilerActivity.CPU], record_shapes=True) as prof:
+                #     with record_function("model_inference"):
                 out = self.lm(input_ids=input_ids,
                               position_ids=position_ids,
                               past_key_values=cache,
@@ -257,6 +267,8 @@ class Eval:
                 end.record()
                 torch.cuda.synchronize()
                 response_time = start.elapsed_time(end)
+
+                # print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
 
                 result = {
                     "entry_schema": entry.schema,
@@ -267,6 +279,7 @@ class Eval:
                 results.append(result)
 
                 self.cache_engine.remove_all_schemas()
+
 
             with open(os.path.join(result_path, f"{self.model_name}-{device_used}-{cache_used}-{dataset_name}.json"),
                       "w") as f:
@@ -282,12 +295,12 @@ class Eval:
                 f.write("\n")
 
 
-def main(llm_config_path: str = os.path.join('./', "config/llm_config_llama2_13b.json"),
+def main(llm_config_path: str = os.path.join('./', "config/llm_config_llama2_7b.json"),
          enable_cache=True,
-         use_cpu_for_inference=False):
+         use_cpu_for_inference=True):
     eval = Eval(llm_config_path, enable_cache, use_cpu_for_inference)
 
-    eval.run_critical_point()
+    eval.run_latency_eval()
 
 
 if __name__ == "__main__":

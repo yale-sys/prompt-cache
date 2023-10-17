@@ -15,18 +15,106 @@
 
     <module name="unit.py">
 class Unit:
-    def __init__(self, unit_type, health_points, attack_power, movement_range):
+    LEVEL_UP_EXP = 100  # Constant for how much experience is needed to level up
+
+    def __init__(self, unit_id, unit_type, health_points, attack_power, movement_range):
+        self.unit_id = unit_id
         self.unit_type = unit_type
+        self.max_health_points = health_points
         self.health_points = health_points
+        self.base_attack_power = attack_power
         self.attack_power = attack_power
         self.movement_range = movement_range
+        self.defense_power = 0
+        self.position = (0, 0)
+        self.direction = 0  # Degrees: 0 = North, 90 = East, etc.
+        self.speed = 0
+        self.experience = 0
+        self.level = 1
+        self.skills = []
+        self.equipment = {'weapon': None, 'armor': None}
+        self.allies = []
+        self.enemies = []
 
-    def move(self, new_position):
-        # Simplified move logic; in reality, you'd need more details like map boundaries
-        self.position = new_position
+    # ... [Repeat previous getter and setter methods] ...
 
-    def attack(self, other_unit):
-        other_unit.health_points -= self.attack_power
+    # Leveling and Experience
+    def add_experience(self, exp):
+        self.experience += exp
+        while self.experience >= Unit.LEVEL_UP_EXP:
+            self.level_up()
+            self.experience -= Unit.LEVEL_UP_EXP
+
+    def level_up(self):
+        self.level += 1
+        self.max_health_points += 10
+        self.base_attack_power += 2
+        print(f"{self.unit_type} has leveled up to {self.level}!")
+
+    # Skill System
+    def learn_skill(self, skill_name):
+        if skill_name not in self.skills:
+            self.skills.append(skill_name)
+            print(f"{self.unit_type} has learned {skill_name}!")
+
+    def use_skill(self, skill_name, target=None):
+        if skill_name in self.skills:
+            # Example logic; expand for different skills
+            if skill_name == 'Heal':
+                self.heal(30)
+            elif skill_name == 'PowerStrike' and target:
+                target.health_points -= (self.attack_power * 2)
+            # ... [Add more skill logic here] ...
+
+    # Equipment System
+    def equip(self, item_type, item_name):
+        if item_type in self.equipment:
+            self.equipment[item_type] = item_name
+            print(f"{self.unit_type} has equipped {item_name}!")
+
+    def unequip(self, item_type):
+        if item_type in self.equipment:
+            item_name = self.equipment[item_type]
+            self.equipment[item_type] = None
+            print(f"{self.unit_type} has unequipped {item_name}!")
+
+    # Interaction with other units
+    def add_ally(self, other_unit):
+        if other_unit not in self.allies:
+            self.allies.append(other_unit)
+            print(f"{self.unit_type} is now allies with {other_unit.unit_type}!")
+
+    def add_enemy(self, other_unit):
+        if other_unit not in self.enemies:
+            self.enemies.append(other_unit)
+            print(f"{self.unit_type} is now enemies with {other_unit.unit_type}!")
+
+    # Enhanced movement
+    def set_direction(self, direction):
+        self.direction = direction % 360  # Ensure direction is between 0 and 359
+
+    def set_speed(self, speed):
+        self.speed = speed
+
+    def move_forward(self):
+        # Simplified logic; in a real game, you'd use trigonometry to calculate the new position
+        if self.direction == 0:  # North
+            self.position = (self.position[0], self.position[1] + self.speed)
+        elif self.direction == 90:  # East
+            self.position = (self.position[0] + self.speed, self.position[1])
+        # ... [Expand for other directions] ...
+
+    # ... [Repeat previous functionality methods] ...
+
+    def print_full_status(self):
+        self.print_status()
+        print(f"Level: {self.level}")
+        print(f"Experience: {self.experience}/{Unit.LEVEL_UP_EXP}")
+        print(f"Skills: {', '.join(self.skills)}")
+        print(f"Equipment: {self.equipment}")
+        print(f"Allies: {[ally.unit_id for ally in self.allies]}")
+        print(f"Enemies: {[enemy.unit_id for enemy in self.enemies]}")
+
 
     </module>
 
@@ -34,35 +122,229 @@ class Unit:
 class Map:
     def __init__(self, grid_size):
         self.grid_size = grid_size
+        self.cells = [[' ' for _ in range(grid_size)] for _ in range(grid_size)]
         self.strategic_points = []
         self.unit_positions = {}
+        self.terrain_types = {'G': 'Grassland', 'F': 'Forest', 'M': 'Mountain', 'W': 'Water'}
+        self.weather_effects = []
+        self.events = []
+        self.obstacles = []
+
+    # Getter methods
+    def get_cell(self, position):
+        return self.cells[position[0]][position[1]]
+
+    def get_terrain(self, position):
+        return self.terrain_types.get(self.get_cell(position))
+
+    # Setter methods
+    def set_cell(self, position, value):
+        self.cells[position[0]][position[1]] = value
+
+    def set_terrain(self, position, terrain_code):
+        if terrain_code in self.terrain_types:
+            self.set_cell(position, terrain_code)
+
+    # Functionality methods
+    def add_strategic_point(self, position):
+        if self.is_move_valid(position) and position not in self.strategic_points:
+            self.strategic_points.append(position)
+
+    def remove_strategic_point(self, position):
+        if position in self.strategic_points:
+            self.strategic_points.remove(position)
+
+    def add_obstacle(self, position):
+        if self.is_move_valid(position) and position not in self.obstacles:
+            self.obstacles.append(position)
+
+    def remove_obstacle(self, position):
+        if position in self.obstacles:
+            self.obstacles.remove(position)
 
     def is_move_valid(self, position):
-        # Check if the position is within the grid
-        return 0 <= position[0] < self.grid_size and 0 <= position[1] < self.grid_size
+        # Check if the position is within the grid and is not an obstacle
+        return (0 <= position[0] < self.grid_size and
+                0 <= position[1] < self.grid_size and
+                position not in self.obstacles)
 
     def capture_point(self, position, player):
         if position in self.strategic_points:
-            self.strategic_points.remove(position)
+            self.remove_strategic_point(position)
             player.captured_points.append(position)
+            self.log_event(f"Player {player.id} captured point {position}!")
+
+    def log_event(self, message):
+        self.events.append(message)
+
+    def print_map(self):
+        for row in self.cells:
+            print(' '.join(row))
+        print('\n'.join(self.events[-5:]))  # print the last 5 events
+
+    def place_unit(self, position, unit_id):
+        if self.is_move_valid(position) and position not in self.unit_positions:
+            self.unit_positions[position] = unit_id
+
+    def move_unit(self, old_position, new_position):
+        if old_position in self.unit_positions and self.is_move_valid(new_position):
+            unit_id = self.unit_positions.pop(old_position)
+            self.unit_positions[new_position] = unit_id
+
+    def get_units_in_radius(self, position, radius):
+        nearby_units = {}
+        for pos, unit_id in self.unit_positions.items():
+            distance = ((pos[0] - position[0])**2 + (pos[1] - position[1])**2)**0.5
+            if distance <= radius:
+                nearby_units[pos] = unit_id
+        return nearby_units
+
+    def add_weather_effect(self, effect):
+        self.weather_effects.append(effect)
+        self.log_event(f"Weather changed: {effect}!")
+
+    def clear_weather(self):
+        self.weather_effects.clear()
+
+    # Utility methods
+    def get_map_statistics(self):
+        return {
+            'Total Strategic Points': len(self.strategic_points),
+            'Total Obstacles': len(self.obstacles),
+            'Total Units': len(self.unit_positions)
+        }
+
+    def get_map_data(self):
+        return {
+            'Grid Size': self.grid_size,
+            'Strategic Points': self.strategic_points,
+            'Unit Positions': self.unit_positions,
+            'Terrain Types': self.terrain_types,
+            'Weather Effects': self.weather_effects,
+            'Events': self.events
+        }
+
+    def export_map_data(self, filename):
+        with open(filename, 'w') as f:
+            for data_key, data_value in self.get_map_data().items():
+                f.write(f"{data_key}: {data_value}\n")
+
 
     </module>
 
 
     <module name="player.py">
 class Player:
-    def __init__(self, name):
+    def __init__(self, player_id, name):
+        self.player_id = player_id
         self.name = name
         self.units = []
         self.captured_points = []
         self.allies = []
+        self.enemies = []
+        self.resources = {'gold': 1000, 'wood': 500, 'stone': 500}
+        self.experience = 0
+        self.level = 1
+        self.messages = []
+        self.battle_history = []
+        self.state = 'active'  # Other possible states: 'waiting', 'defeated', 'victorious'
+        self.technology_tree = {}
 
+    # Basic functionalities
     def add_unit(self, unit):
         self.units.append(unit)
 
     def form_alliance(self, other_player):
-        self.allies.append(other_player)
-        other_player.allies.append(self)
+        if other_player not in self.allies:
+            self.allies.append(other_player)
+            other_player.allies.append(self)
+            self.send_message(f"Formed an alliance with {other_player.name}!")
+            other_player.send_message(f"Formed an alliance with {self.name}!")
+
+    def declare_war(self, other_player):
+        if other_player not in self.enemies:
+            self.enemies.append(other_player)
+            other_player.enemies.append(self)
+            self.send_message(f"Declared war on {other_player.name}!")
+            other_player.send_message(f"{self.name} declared war on you!")
+
+    # Resource management
+    def add_resources(self, resource_type, amount):
+        if resource_type in self.resources:
+            self.resources[resource_type] += amount
+            self.send_message(f"Acquired {amount} {resource_type}!")
+
+    def spend_resources(self, resource_type, amount):
+        if resource_type in self.resources and self.resources[resource_type] >= amount:
+            self.resources[resource_type] -= amount
+            self.send_message(f"Spent {amount} {resource_type}!")
+            return True
+        return False
+
+    # Experience and leveling
+    def gain_experience(self, exp):
+        self.experience += exp
+        while self.experience >= self.level * 100:
+            self.level_up()
+
+    def level_up(self):
+        self.level += 1
+        self.resources['gold'] += 500  # Bonus for leveling up
+        self.send_message(f"Reached level {self.level}!")
+
+    # Communication
+    def send_message(self, message):
+        self.messages.append(message)
+
+    def read_messages(self):
+        for msg in self.messages:
+            print(msg)
+        self.messages.clear()
+
+    # Battle and statistics
+    def log_battle(self, result, opponent_name):
+        self.battle_history.append((result, opponent_name))
+        if result == 'win':
+            self.gain_experience(100)
+        elif result == 'lose':
+            self.gain_experience(30)
+
+    def get_win_loss_ratio(self):
+        wins = sum(1 for result, _ in self.battle_history if result == 'win')
+        losses = len(self.battle_history) - wins
+        return wins, losses
+
+    # Technology and research
+    def research_technology(self, tech_name):
+        if tech_name not in self.technology_tree:
+            self.technology_tree[tech_name] = 1  # Level 1 of the technology
+            self.send_message(f"Started researching {tech_name}!")
+        else:
+            self.technology_tree[tech_name] += 1
+            self.send_message(f"Advanced {tech_name} to level {self.technology_tree[tech_name]}!")
+
+    def get_tech_level(self, tech_name):
+        return self.technology_tree.get(tech_name, 0)
+
+    # Player status and utility functions
+    def set_state(self, new_state):
+        self.state = new_state
+
+    def get_player_status(self):
+        return {
+            'Name': self.name,
+            'Level': self.level,
+            'Resources': self.resources,
+            'Captured Points': self.captured_points,
+            'Allies': [ally.name for ally in self.allies],
+            'Enemies': [enemy.name for enemy in self.enemies],
+            'State': self.state
+        }
+
+    def print_player_summary(self):
+        for key, value in self.get_player_status().items():
+            print(f"{key}: {value}")
+
 
 
     </module>
@@ -71,35 +353,221 @@ class Game:
     def __init__(self):
         self.players = []
         self.current_turn = 0
+        self.map = None  # The game map
+        self.game_state = 'not_started'  # Possible states: 'ongoing', 'finished'
+        self.events = []
+        self.turn_limit = 100
+        self.active_players_count = 0
 
+    # Game setup
+    def register_player(self, player):
+        if self.game_state == 'not_started':
+            self.players.append(player)
+            self.active_players_count += 1
+            self.log_event(f"Player {player.name} joined the game!")
+
+    def set_map(self, map_obj):
+        self.map = map_obj
+
+    def start_game(self):
+        if self.map and self.players:
+            self.game_state = 'ongoing'
+            self.log_event("The game has started!")
+
+    # Game mechanics
     def next_turn(self):
         self.current_turn = (self.current_turn + 1) % len(self.players)
+        current_player = self.players[self.current_turn]
+        self.log_event(f"It's {current_player.name}'s turn!")
+
+    def eliminate_player(self, player):
+        self.active_players_count -= 1
+        self.log_event(f"Player {player.name} has been eliminated!")
+
+    def declare_winner(self, player):
+        self.game_state = 'finished'
+        self.log_event(f"Player {player.name} has won the game!")
 
     def is_game_over(self):
-        # Simplified game-over condition; e.g., when a player captures all points
+        # Victory condition based on capturing all strategic points
         for player in self.players:
             if len(player.captured_points) == len(self.map.strategic_points):
+                self.declare_winner(player)
                 return True, player
+        # Other game over conditions like reaching the turn limit
+        if self.current_turn == self.turn_limit:
+            self.game_state = 'finished'
+            self.log_event("The game ended in a draw!")
+            return True, None
+        if self.active_players_count == 1:
+            remaining_player = next(player for player in self.players if player.state == 'active')
+            self.declare_winner(remaining_player)
+            return True, remaining_player
         return False, None
+
+    # Event handling and communication
+    def log_event(self, message):
+        self.events.append(message)
+
+    def broadcast_message(self, message):
+        for player in self.players:
+            player.send_message(message)
+        self.log_event(message)
+
+    # Leaderboard and statistics
+    def leaderboard(self):
+        players_sorted = sorted(self.players, key=lambda p: len(p.captured_points), reverse=True)
+        board = [(player.name, len(player.captured_points)) for player in players_sorted]
+        return board
+
+    def print_leaderboard(self):
+        print("Leaderboard:")
+        for rank, (name, points) in enumerate(self.leaderboard(), 1):
+            print(f"{rank}. {name} - {points} points")
+
+    # Save/Load and utility functions
+    def save_game(self, filename):
+        with open(filename, 'w') as file:
+            game_data = {
+                'Players': [player.get_player_status() for player in self.players],
+                'Current Turn': self.current_turn,
+                'Game State': self.game_state,
+                'Events': self.events
+            }
+            file.write(str(game_data))
+
+    def load_game(self, filename):
+        with open(filename, 'r') as file:
+            game_data = eval(file.read())
+            self.players = [Player(**player_data) for player_data in game_data['Players']]
+            self.current_turn = game_data['Current Turn']
+            self.game_state = game_data['Game State']
+            self.events = game_data['Events']
+
+    def summary(self):
+        return {
+            'Total Players': len(self.players),
+            'Active Players': self.active_players_count,
+            'Game State': self.game_state,
+            'Current Turn': self.current_turn,
+            'Events': self.events[-5:]  # Last 5 events
+        }
+
+    def print_summary(self):
+        for key, value in self.summary().items():
+            print(f"{key}: {value}")
+
 
     </module>
     <module name="database.py">
 class Database:
     def __init__(self):
-        self.games = []
-        self.players = []
+        self.games = {}
+        self.players = {}
+        self.game_id_counter = 0
+        self.player_id_counter = 0
+        self.logs = []
 
+    # CRUD operations for games
     def save_game(self, game):
-        self.games.append(game)
+        game_id = self.game_id_counter
+        self.games[game_id] = game
+        self.game_id_counter += 1
+        self.log_event(f"Saved game with ID {game_id}")
+        return game_id
 
-    def save_player(self, player):
-        self.players.append(player)
+    def update_game(self, game_id, updated_game):
+        if game_id in self.games:
+            self.games[game_id] = updated_game
+            self.log_event(f"Updated game with ID {game_id}")
+
+    def delete_game(self, game_id):
+        if game_id in self.games:
+            del self.games[game_id]
+            self.log_event(f"Deleted game with ID {game_id}")
+
+    def retrieve_game_by_id(self, game_id):
+        return self.games.get(game_id)
 
     def retrieve_all_games(self):
-        return self.games
+        return self.games.values()
+
+    # CRUD operations for players
+    def save_player(self, player):
+        player_id = self.player_id_counter
+        self.players[player_id] = player
+        self.player_id_counter += 1
+        self.log_event(f"Saved player with ID {player_id}")
+        return player_id
+
+    def update_player(self, player_id, updated_player):
+        if player_id in self.players:
+            self.players[player_id] = updated_player
+            self.log_event(f"Updated player with ID {player_id}")
+
+    def delete_player(self, player_id):
+        if player_id in self.players:
+            del self.players[player_id]
+            self.log_event(f"Deleted player with ID {player_id}")
+
+    def retrieve_player_by_id(self, player_id):
+        return self.players.get(player_id)
 
     def retrieve_all_players(self):
-        return self.players
+        return self.players.values()
+
+    # Search, filter, and sorting functionalities
+    def filter_games_by_player(self, player_name):
+        return [game for game in self.games.values() if any(player.name == player_name for player in game.players)]
+
+    def sort_players_by_name(self):
+        return sorted(self.players.values(), key=lambda player: player.name)
+
+    # Logging, backup, and maintenance
+    def log_event(self, message):
+        self.logs.append(message)
+
+    def view_logs(self, last_n=5):
+        return self.logs[-last_n:]
+
+    def backup(self, filename):
+        with open(filename, 'w') as file:
+            backup_data = {
+                'Games': self.games,
+                'Players': self.players,
+                'GameIDCounter': self.game_id_counter,
+                'PlayerIDCounter': self.player_id_counter
+            }
+            file.write(str(backup_data))
+
+    def restore_from_backup(self, filename):
+        with open(filename, 'r') as file:
+            backup_data = eval(file.read())
+            self.games = backup_data['Games']
+            self.players = backup_data['Players']
+            self.game_id_counter = backup_data['GameIDCounter']
+            self.player_id_counter = backup_data['PlayerIDCounter']
+            self.log_event("Database restored from backup!")
+
+    # Maintenance and integrity check
+    def clean_orphan_records(self):
+        valid_player_ids = set(self.players.keys())
+        for game_id, game in list(self.games.items()):
+            if not set(player.player_id for player in game.players).issubset(valid_player_ids):
+                self.delete_game(game_id)
+                self.log_event(f"Removed orphan game record with ID {game_id}")
+
+    def get_stats(self):
+        return {
+            'Total Games': len(self.games),
+            'Total Players': len(self.players),
+            'Last 5 Logs': self.view_logs()
+        }
+
+    def print_stats(self):
+        for key, value in self.get_stats().items():
+            print(f"{key}: {value}")
+
 
     </module>
 

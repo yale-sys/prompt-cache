@@ -4,7 +4,7 @@ import torch
 import re
 
 from transformers import AutoTokenizer, AutoModelForCausalLM, LlamaTokenizer, PreTrainedTokenizer, \
-    PretrainedConfig, PreTrainedModel
+    PretrainedConfig, PreTrainedModel, CodeLlamaTokenizer
 
 from promptcache.model.falcon import FalconForCausalLM
 from promptcache.model.llama2 import LlamaForCausalLM
@@ -161,6 +161,27 @@ class LanguageModel(abc.ABC):
         return self.hf_model.config
 
 
+class CodeLlama(LanguageModel):
+
+    def __init__(self, name: str = "codellama/CodeLlama-13b-Instruct-hf", **kwargs):
+        tokenizer = CodeLlamaTokenizer.from_pretrained(name)
+        model = LlamaForCausalLM.from_pretrained(name, **kwargs)
+
+        self.formatter = FormatConversation(
+            system=("<s> [INST] <<SYS>>\n", "<</SYS>>\n\n", "<s> [INST] "),
+            user=("", "[/INST]"),
+            assistant=("", "</s><s> [INST] "))
+
+        stop_token_ids = [tokenizer.eos_token_id]
+
+        stop_str = ["</s>"]
+
+        super().__init__(name, model, tokenizer, stop_token_ids, stop_str)
+
+    def get_formatter(self) -> Callable[[str], str]:
+        return self.formatter
+
+
 class Llama2(LanguageModel):
 
     def __init__(self, name: str = "meta-llama/Llama-2-7b-chat-hf", **kwargs):
@@ -172,7 +193,11 @@ class Llama2(LanguageModel):
             user=("", "[/INST]"),
             assistant=("", "</s><s> [INST] "))
 
-        super().__init__(name, model, tokenizer, [tokenizer.eos_token_id])
+        stop_token_ids = [tokenizer.eos_token_id]
+
+        stop_str = ["</s>"]
+
+        super().__init__(name, model, tokenizer, stop_token_ids, stop_str)
 
     def get_formatter(self) -> Callable[[str], str]:
         return self.formatter

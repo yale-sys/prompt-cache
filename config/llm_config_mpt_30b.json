@@ -1,7 +1,7 @@
 {
-  "arch": "llama",
-  "log_name": "llama2-13b",
-  "name": "meta-llama/Llama-2-13b-chat-hf",
+  "arch": "mpt",
+  "log_name": "mpt-30b",
+  "name": "mosaicml/mpt-30b-chat",
   "load_in_8bit": true,
   "device_map": "auto",
   "max_tokens": 3500,
