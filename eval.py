@@ -160,14 +160,15 @@ class Eval:
         if not os.path.exists(self.result_directory):
             os.makedirs(self.result_directory)
 
+        self.result_file_suffix = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
     def store_results(self, results, split):
         if self.enable_cache:
             prefix = "with_cache"
         else:
             prefix = "no_cache"
 
-        timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        with open(os.path.join(self.result_directory, f"{prefix}_split_{split[0]}_{split[1]}_time_{timestamp}.json"), "a") as f:
+        with open(os.path.join(self.result_directory, f"{prefix}_split_{split[0]}_{split[1]}_time_{self.result_file_suffix}.json"), "a") as f:
             json.dump(results, f)
             f.write("\n")
 
