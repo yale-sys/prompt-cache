@@ -152,21 +152,22 @@ class Eval:
                 self.dataset = LongBench("repobench-p")
 
         # for testing purpose, limit the entries to a small number
-        self.dataset.init(limit_entries=100)
+        self.dataset.init()
 
         # create result directory
         self.result_directory = os.path.join(BENCHMARK_PATH, "results",
-                                             f"{self.model_name}-{self.dataset.dataset_name}",
-                                             datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+                                             f"{self.model_name}-{self.dataset.dataset_name}")
         if not os.path.exists(self.result_directory):
             os.makedirs(self.result_directory)
 
-    def store_results(self, results):
+    def store_results(self, results, split):
         if self.enable_cache:
             prefix = "with_cache"
         else:
             prefix = "no_cache"
-        with open(os.path.join(self.result_directory, f"{prefix}_results.json"), "a") as f:
+
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        with open(os.path.join(self.result_directory, f"{prefix}_split_{split[0]}_{split[1]}_time_{timestamp}.json"), "a") as f:
             json.dump(results, f)
             f.write("\n")
 
@@ -275,7 +276,7 @@ class Eval:
                     "answers": entry.answer,
                     "response": resp
                 }
-                self.store_results(result)
+                self.store_results(result, split)
                 print("\n")
 
             self.cache_engine.remove_all_schemas()

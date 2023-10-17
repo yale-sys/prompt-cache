@@ -29,30 +29,22 @@ def construct_python_commands(default_args, benchmarks, llm_list):
         llm_config = llm["config_name"]
         for benchmark in benchmarks:
             for enable_cache in [True, False]:
-                command = "python3 eval.py"
-                merged_args = {**default_args, **benchmark, "llm_config_path": llm_config}
-                for key, value in merged_args.items():
-                    if key == "enable_cache":
-                        continue
-                    command += f" --{key} {value}"
-                command += f" --enable_cache {enable_cache}"
-                command += f" --test_latency False"
-                command += f" --cache_batch_size 1"
-                commands.append(command)
+                split = benchmark.get("split", 1)
+                for index in range(split):
+                    command = "python3 eval.py"
+                    merged_args = {**default_args, **benchmark, "llm_config_path": llm_config}
+                    for key, value in merged_args.items():
+                        if key == "enable_cache":
+                            continue
+                        elif key == "split":
+                            command += f" --split {index},{split}"
+                        else:
+                            command += f" --{key} {value}"
+                    command += f" --enable_cache {enable_cache}"
+                    command += f" --test_latency False"
+                    commands.append(command)
     return commands
-
-def run_python_command_with_logging(paired_command):
-    command, gpu_id = paired_command
-    try:
-        env_command = f"CUDA_VISIBLE_DEVICES={gpu_id} " + command
-        # subprocess.run("cd .. && " + env_command, shell=True, check=True)
-        logging.info(f"Command {command} completed successfully.")
-        return True
-    except subprocess.CalledProcessError as e:
-        logging.error(f"Command {command} failed: {e}")
-        return False
     
-
 global python_commands_list
 def gpu_worker(gpu_id, command_lock):
     while True:
@@ -84,6 +76,11 @@ def main():
     # Construct the Python commands
     python_commands_list = construct_python_commands(args_dict["default"], args_dict["benchmarks"], args_dict["llm_list"])
     logging.info(f"Constructed {len(python_commands_list)} benchmarks.")
+
+    for pc in python_commands_list:
+        logging.info(pc)
+
+    return
 
     global next_command_index
     next_command_index = 0

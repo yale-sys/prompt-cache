@@ -84,7 +84,7 @@ class LongBench(Benchmark):
 
 
 if __name__ == '__main__':
-    sq = LongBench('2wikimqa')
+    sq = LongBench('narrativeqa')
     sq.init()
     print(sq.get_entry_count())
-    print(sq.get_query((0, 1)))
+    print(sq.get_query((100, 101)))
