@@ -147,10 +147,10 @@ class Parameter(Element):
         return super().__repr__() + f" Parameter @{self.name}"
 
     def token_ids(self) -> List[int]:
-        raise self._token_ids
+        return self._token_ids
 
     def position_ids(self) -> List[int]:
-        raise self._position_ids
+        return self._position_ids
 
 
 class TokenSequence(Element):

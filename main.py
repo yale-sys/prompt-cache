@@ -27,7 +27,7 @@ def escape_tags(input_str):
     # return input_str.replace('<', '(').replace('>', ')')
 
 
-def main(enable_cache=True):
+def main(enable_cache=False):
     ### Configurations ###
 
     disable_cuda = False
@@ -38,13 +38,13 @@ def main(enable_cache=True):
 
     ######################
 
-    # lm_for_cache = Llama2("meta-llama/Llama-2-13b-chat-hf",
-    #                       load_in_8bit=True,
-    #                       device_map="auto")
+    lm_for_cache = Llama2("meta-llama/Llama-2-7b-chat-hf",
+                          load_in_8bit=True,
+                          device_map="auto")
 
-    lm_for_cache = CodeLlama("codellama/CodeLlama-13b-Instruct-hf",
-                             load_in_8bit=True,
-                             device_map="auto")
+    # lm_for_cache = CodeLlama("codellama/CodeLlama-13b-Instruct-hf",
+    #                          load_in_8bit=True,
+    #                          device_map="auto")
 
     lm = lm_for_cache
 
@@ -78,7 +78,7 @@ def main(enable_cache=True):
     # concisely as you can, using a single phrase if possible. Do not provide any explanation.\n\nStory:{sample_context}</module></schema>
     #     """
 
-    cache_engine = CacheEngine(7000, lm_for_cache)
+    cache_engine = CacheEngine(4000, lm_for_cache)
     gen_engine = GenerationEngine(lm)
 
     preproc = [
@@ -90,8 +90,9 @@ def main(enable_cache=True):
     # torch.cuda.synchronize()
     # print(f'Mem: {torch.cuda.memory_allocated(0) / (1e6):.2f} MB')
 
-    cache_engine.add_schema(read_file("./examples/code_generation_game.xml", preproc))
+    #cache_engine.add_schema(read_file("./examples/code_generation_game.xml", preproc), max_tokens=1200)
     #cache_engine.add_schema(read_file("./examples/personalization-education.xml", preproc))
+    cache_engine.add_schema(read_file("./examples/parameterized_prompts.xml", preproc))
 
     # cache_engine.add_schema(apply_preproc(schema, preproc), max_tokens=3500)
 
@@ -120,6 +121,22 @@ def main(enable_cache=True):
         </user>
         </prompt>
         """
+
+
+    prompt_text = f"""
+        <prompt schema='travel'>
+        <travel-plan duration="a week">
+        <overseas>
+        <tokyo/>
+        </overseas>
+        </travel-plan>
+
+        <user>
+            Create a travel plan
+        </user>
+        </prompt>
+        """
+    #
     #
     # prompt_text = f"""
     #     <prompt schema='personalization-education'>
