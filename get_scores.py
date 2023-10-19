@@ -42,7 +42,7 @@ dataset2metric = {
 
 def main():
     dset_list = [
-        "squad_v2",
+        #"squad_v2",
         "narrativeqa",
         "qasper",
         "multifieldqa_en",
@@ -62,15 +62,15 @@ def main():
     ]
 
     model_list = [
-        "falcon",
+        #"falcon",
         "llama",
-        "mpt"
+        #"mpt"
     ]
 
     for dset in tqdm(dset_list):
         print(f"Dataset: {dset}------------------------------")
         for m in model_list:
-            p = f"./results/{m}-{dset}"
+            p = f"./results_13b/{m}-{dset}"
             with open(glob.glob(f"{p}/no_cache_*.json")[0], "r") as f:
                 no_cache = [json.loads(line) for line in f]
                 no_cache_score, nc_std = score(no_cache, dset)
@@ -94,7 +94,7 @@ def score(results, dataset_name):
 
         scores_list.append(score)
 
-    print(scores_list)
+    #print(scores_list)
     mean = np.mean(scores_list) * 100
     std = np.std(scores_list)
 
