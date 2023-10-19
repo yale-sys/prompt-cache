@@ -233,7 +233,7 @@ class Eval:
 
             results = []
 
-            for entry in tqdm(dataset.entries):
+            for entry in tqdm(dataset.entries[:5]):
                 for _ in range(self.repeat_times):
                     schema_file_path = os.path.join(SCHEMA_FILE_DIRECTORY, dataset_name, entry.schema)
 
@@ -296,12 +296,12 @@ class Eval:
                 f.write("\n")
 
 
-def main(memo: str = "13900k", llm_config_path: str = os.path.join('./', "config/llm_config_llama2_7b.json"),
-         use_cpu_for_inference=True):
+def main(memo: str = "13900k-gpu", llm_config_path: str = os.path.join('./', "config/llm_config_llama2_7b.json"),
+         use_cpu_for_inference=False):
     eval = Eval(memo, llm_config_path, use_cpu_for_inference)
 
-    eval.run_latency_eval(False)
-    eval.run_latency_eval(True)
+    #eval.run_latency_eval(False)
+    #eval.run_latency_eval(True)
     eval.run_critical_point()
 
 
