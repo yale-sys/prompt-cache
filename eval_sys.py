@@ -215,6 +215,88 @@ class Eval:
                 }, f)
 
     @torch.inference_mode()
+    def run_critical_point22(self):
+
+
+        test_seq_len = [
+            1,
+            2,
+            4,
+            8,
+            16,
+            32,
+            64,
+            128,
+            256,
+            512,
+            512 + 128 * 1,
+            512 + 128 * 2,
+            512 + 128 * 3,
+            1024,
+            1024 + 256 * 1,
+            1024 + 256 * 2,
+            1024 + 256 * 3,
+            2048,
+            2028 + 512 * 1,
+            2028 + 512 * 2,
+            2028 + 512 * 3,
+            #4096,
+            # 4096 + 1024 * 1,
+            # 4096 + 1024 * 2,
+
+        ]
+
+        results = []
+
+        for seq_len in tqdm(test_seq_len):
+            for _ in range(self.repeat_times):
+                ## 1. compute gpu upload time
+                input_ids = torch.tensor([[100]], device=self.lm.device, dtype=torch.long)
+                #position_ids = torch.tensor([[100]], device=self.lm.device, dtype=torch.long)
+
+                device_cache = [
+                    (torch.empty(1, 32, seq_len, 128, device=self.lm.device, dtype=torch.half),  # key
+                     torch.empty(1, 32, seq_len, 128, device=self.lm.device, dtype=torch.half)) for _ in
+                    range(32)]
+
+                torch.cuda.synchronize()
+                start = torch.cuda.Event(enable_timing=True)
+                end = torch.cuda.Event(enable_timing=True)
+
+                start.record()
+                # upload everything to GPU
+                out = self.lm(input_ids=input_ids,
+                              #position_ids=position_ids,
+                              past_key_values=device_cache,
+                              use_cache=True)
+
+                end.record()
+                torch.cuda.synchronize()
+                gpu_upload_time = start.elapsed_time(end)
+
+                del device_cache
+                gc.collect()
+                torch.cuda.empty_cache()
+
+                results.append({
+                    "seq_len": seq_len,
+                    "time": gpu_upload_time,
+                })
+
+        result_path = os.path.join(BENCHMARK_PATH, "aaa")
+
+        with open(os.path.join(result_path, f"{self.memo}-{self.model_log_name}-critical_point-upload.json"),
+                  "w") as f:
+            json.dump(
+                {
+                    'model_name': self.model_name,
+                    'results': results
+                }, f)
+
+        results = []
+
+
+    @torch.inference_mode()
     def run_latency_eval(self, do_cache):
 
         for dataset_name in self.dataset_list:
@@ -295,14 +377,64 @@ class Eval:
                     }, f)
                 f.write("\n")
 
+    @torch.inference_mode()
+    def run_profile(self, do_cache):
+        device_used = "cpu" if self.use_cpu_for_inference else "gpu"
+        cache_used = "cache" if do_cache else "no_cache"
 
-def main(memo: str = "13900k-gpu", llm_config_path: str = os.path.join('./', "config/llm_config_llama2_7b.json"),
-         use_cpu_for_inference=False):
+        for dataset_name in self.dataset_list:
+
+            dataset = self.dataset_list[dataset_name]
+            dataset.init(limit_entries=5)
+
+            no_cache = not do_cache
+
+            for entry in tqdm(dataset.entries[:5]):
+                for _ in range(self.repeat_times):
+                    schema_file_path = os.path.join(SCHEMA_FILE_DIRECTORY, dataset_name, entry.schema)
+
+                    self.cache_engine.add_schema(read_file(schema_file_path, self.preproc), no_cache=no_cache,
+                                                 max_tokens=2500)
+
+                    prompt = Prompt(entry.prompt, self.preproc)
+
+                    token_ids, position_ids, cache_time, cache = self.cache_engine.process(prompt,
+                                                                                           no_cache=no_cache,
+                                                                                           return_full_position_ids=self.lm.use_full_position_ids)
+
+                    input_ids = torch.tensor([token_ids], device=self.lm.device, dtype=torch.long)
+                    position_ids = torch.tensor([position_ids], device=self.lm.device, dtype=torch.long)
+                    # print(len(position_ids[0]))
+
+                    # add redundant batch dim
+                    if cache is not None:
+                        cache = [(k[0].unsqueeze(0), k[1].unsqueeze(0)) for k in cache]
+
+                    with profile(activities=[ProfilerActivity.CUDA], with_stack=True,
+                                 experimental_config=torch._C._profiler._ExperimentalConfig(verbose=True)) as prof:
+                        with record_function("model_inference"):
+                            out = self.lm(input_ids=input_ids,
+                                          position_ids=position_ids,
+                                          past_key_values=cache,
+                                          use_cache=True)
+
+                    prof.export_stacks(f"./profile/{device_used}_{cache_used}_self_cuda_time_total.txt",
+                                       "self_cuda_time_total")
+                    self.cache_engine.remove_all_schemas()
+
+                    return
+
+
+def main(memo: str = "13900k-cpu", llm_config_path: str = os.path.join('./', "config/llm_config_llama2_7b.json"),
+         use_cpu_for_inference=True):
     eval = Eval(memo, llm_config_path, use_cpu_for_inference)
 
-    #eval.run_latency_eval(False)
-    #eval.run_latency_eval(True)
-    eval.run_critical_point()
+    # eval.run_latency_eval(False)
+    # eval.run_latency_eval(True)
+    #eval.run_profile(True)
+    #eval.run_profile(False)
+
+    eval.run_critical_point22()
 
 
 if __name__ == "__main__":

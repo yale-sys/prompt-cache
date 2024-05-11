@@ -1,35 +1,21 @@
-# PromptCache
+# Prompt Cache
 
-Modular and structured prompt caching for low-latency LLM inference
+This repository contains the implementation of the [Prompt Cache:  Modular Attention Reuse For Low-Latency Inference](https://arxiv.org/abs/2311.04934) paper.
 
-### Roadmap
-
-#### Implementation
-
-- [x] Proof-of-concept
-- [ ] Better memory management
-    - [ ] Custom cache allocator (memory ballooning: staged vs. retained)
-- [x] CPU inference
-- [ ] Support various LLMs
-- [ ] Conditional cache (layer 2 / layer 3)
-- [ ] Cache compression
-- [ ] Pipelined generation
-- [ ] Faster caching time
 
 ### Setup
 
-Current inference engine supports.
+Current inference engine supports three family of LLM architectures:
 
 - Llama2
 - Falcon
-
-Make sure that you
-have access to it. You may use other LLMs, but you need to modify the chat preprocessor.
+- MPT
+-
 
 Install dependencies for the transformer inference:
 
 ```bash
-pip install deepspeed bitsandbytes peft protobuf lxml SentencePiece scipy
+pip install transformers deepspeed datasets bitsandbytes accelerate peft protobuf lxml SentencePiece scipy
 ```
 
 Install bleurt:
@@ -41,13 +27,13 @@ pip install .
 
 ### Demo
 
-Simple demonstration code is located inside `main.py`. You can run it by
+Simple demonstration code is located inside `demo.py`. You can run it by
 
 ```bash
 python main.py
 ```
 
-You can turn on and off the `PromptCache` by setting `use_cache` flag in `main.py`.
+You can turn on and off the `PromptCache` by setting `use_cache` flag in `demo.py`.
 Feel free to modify the code to test different prompts and schemas.
 
 Example: [/benchmark/schema_persona_long.xml](./benchmark/schema_persona_long.xml):
@@ -79,11 +65,11 @@ Example: [/benchmark/schema_persona_long.xml](./benchmark/schema_persona_long.xm
 </prompt>
 ```
 
-The result
+#### Demo Results
 
-GPU: NVIDIA RTX 4090  / CPU: Intel i9-13900K
+GPU: NVIDIA RTX 4090 / CPU: Intel i9-13900K
 
-- **Regular KV cache** (response time:  GPU: 286.9ms, CPU: 17917.14 ms)
+- **Baseline (with KV cache)** (TTFT:  GPU: 286.9ms, CPU: 17917.14 ms)
 
 ```
 User: Introduce about yourself.
@@ -93,7 +79,7 @@ Assistant: Hello! My name is Alex, and I am a 25-year-old woman who lives in a b
  my work and am constantly looking for opportunities to learn and grow in my
 ```
 
-- **With PromptCache** (response time: GPU: 78.2ms, CPU: 511.31ms)
+- **With PromptCache** (TTFT: GPU: 78.2ms, CPU: 511.31ms)
 
 ```
 User: Introduce about yourself.
@@ -102,35 +88,9 @@ Assistant: Hello! My name is Alex, and I'm a 28-year-old software developer who 
  As an introverted person, I often prefer spending time alone or with my close family members, but I also make an effort to connect with others through social events and community activities. I believe in being honest, kind, and respectful towards everyone, regardless of their background or beliefs.
 ```
 
-### Evaluation tasks
+## Prompt Markup Language (PML)
 
-#### 1. Personalization
-
-LLM is widely used for simulating in-person interactions, each with unique personas.
-Personas are a combination of unique traits from a set of traits, e.g., select one from {chinese, korean, japanese} and
-one from {young, old}.
-
-`PromptCache` allows for efficient caching of prompts for each persona combination, without having to store all possible
-combinations.
-
-#### 2. Code generation
-
-Code generation, e.g., generating python code from natural language description, and
-autocompleting the code based on the context, is a common task in LLM.
-
-Since the code itself is a structured data, `PromptCache` can be used to cache the code generation prompts,
-
-#### 3. Parameterized prompts
-
-Long task prompts typically involves a parameterizable template.
-
-#### 4. Long contexts
-
-Long contexts about documents, videos, or images are often used in LLM.
-
-### Prompt schema
-
-#### Example
+### Writing schema with PML
 
 ```xml
 <!-- Schema is a root module. Schema can contain modules and unions -->
@@ -198,9 +158,7 @@ Long contexts about documents, videos, or images are often used in LLM.
 
 ```
 
-### Prompt
-
-#### Example
+### Writing Prompt with PML
 
 ```xml
 
@@ -221,9 +179,16 @@ Long contexts about documents, videos, or images are often used in LLM.
 </prompt>
 ```
 
-### Tests
-Test cases are placed inside `tests` directory. You can run all tests by `python tests/[TEST_NAME].py`. For example:
+### Benchmark and Evaluation
+
+You can run accuracy benchmarks with
+
 ```bash
-python tests/test_benchmark.py
+python eval_acc.py --help
 ```
 
+To evaluate the inference time, you can run the following command:
+
+```bash
+python eval.py --help
+```

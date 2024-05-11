@@ -41,10 +41,6 @@ from transformers.utils import (
 )
 from transformers.models.falcon.configuration_falcon import FalconConfig
 
-if is_flash_attn_available():
-    from flash_attn import flash_attn_func, flash_attn_varlen_func
-    from flash_attn.bert_padding import index_first_axis, pad_input, unpad_input  # noqa
-
 logger = logging.get_logger(__name__)
 
 FALCON_PRETRAINED_MODEL_ARCHIVE_LIST = [

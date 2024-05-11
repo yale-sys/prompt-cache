@@ -14,7 +14,7 @@ from transformers.generation.logits_process import (
     TopKLogitsWarper,
     TopPLogitsWarper,
 )
-
+import termcolor
 from promptcache.model import LanguageModel
 
 
@@ -113,7 +113,9 @@ class GenerationEngine:
                 torch.cuda.synchronize()
                 inference_time += start.elapsed_time(end)
                 response_time = inference_time
-                print(f'Response time: {inference_time:.2f} ms')
+                # print(f'Response time: {inference_time:.2f} ms')
+                # pretty print using termcolor
+                print(termcolor.colored(f'Prefill latency: {inference_time:.2f} ms', 'yellow'))
 
                 logits = out.logits
                 past_key_values = out.past_key_values
