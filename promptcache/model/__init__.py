@@ -211,23 +211,42 @@ class Falcon(LanguageModel):
         def rep(prompt: str) -> str:
             return prompt.replace("\r\n", "\n").replace("\n\n", "\n")
 
+        # name = "falcon",
+        # roles = ("User", "Assistant"),
+        # messages = [],
+        # sep_style = SeparatorStyle.RWKV,
+        # sep = "\n",
+        # sep2 = "<|endoftext|>",
+        # stop_str = "\nUser",
+
         conv = FormatConversation(
             system=("", "\n\n", ""),
             user=("User: ", "\n\nAssistant:"),
             assistant=(" ", "\n\n"))
-
-        conv = FormatConversation(
-            system=("", "\n\n", ""),
-            user=("<|prompt|>", "<|endoftext|>"),
-            assistant=("<|answer|>", "<|endoftext|>"))
+        #
+        # conv = FormatConversation(
+        #     system=("", "\n\n", ""),
+        #     user=("<|prompt|>", "<|endoftext|>"),
+        #     assistant=("<|answer|>", "<|endoftext|>"))
 
         self.formatter = PreprocessorList([
             rep, conv
         ])
 
-        stop_token_ids = [11]
+        stop_token_ids = [0,
+                          1,
+                          2,
+                          3,
+                          4,
+                          5,
+                          6,
+                          7,
+                          8,
+                          9,
+                          10,
+                          11, ]
 
-        stop_str = ["<|endoftext|>"]
+        stop_str = ["<|endoftext|>", "\nUser"]
 
         super().__init__(name, model, tokenizer, stop_token_ids, stop_str)
 

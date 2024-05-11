@@ -149,21 +149,23 @@ class Eval:
                 self.dataset = LongBench("repobench-p")
 
         # for testing purpose, limit the entries to a small number
-        self.dataset.init(limit_entries=None)
+        self.dataset.init()
 
         # create result directory
         self.result_directory = os.path.join(BENCHMARK_PATH, "results",
-                                             f"{self.model_name}-{self.dataset.dataset_name}",
-                                             datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+                                             f"{self.model_name}-{self.dataset.dataset_name}")
         if not os.path.exists(self.result_directory):
             os.makedirs(self.result_directory)
 
-    def store_results(self, results):
+        self.result_file_suffix = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+    def store_results(self, results, split):
         if self.enable_cache:
             prefix = "with_cache"
         else:
             prefix = "no_cache"
-        with open(os.path.join(self.result_directory, f"{prefix}_results.json"), "a") as f:
+
+        with open(os.path.join(self.result_directory, f"{prefix}_split_{split[0]}_{split[1]}_time_{self.result_file_suffix}.json"), "a") as f:
             json.dump(results, f)
             f.write("\n")
 
@@ -216,18 +218,16 @@ class Eval:
 
             self.cache_engine.remove_all_schemas()
 
-    def run(self, cache_batch_size, split, verbose=False):
+    def run(self, split, verbose=False):
         entry_count = self.dataset.get_entry_count()
         split_count = entry_count // split[1]
 
         start = split_count * split[0]
         end = split_count * (split[0] + 1)
-        print(
-            f"Running benchmark on {self.dataset.dataset_name}, start: {start}, end: {end}, batch size: {cache_batch_size}")
+        print(f"Running benchmark on {self.dataset.dataset_name}, start: {start}, end: {end}")
 
-        for i in tqdm(range(start, end, cache_batch_size)):
-            entries = self.dataset.get_query((i, i + cache_batch_size))
-            # load schema for `cache_batch_size` entries
+        for i in tqdm(range(start, end)):
+            entries = self.dataset.get_query((i, i + 1))
             for entry in entries:
                 schema_file_path = os.path.join(SCHEMA_FILE_DIRECTORY, self.dataset.dataset_name, entry.schema)
                 print(schema_file_path)
@@ -274,7 +274,7 @@ class Eval:
                     "answers": entry.answer,
                     "response": resp
                 }
-                self.store_results(result)
+                self.store_results(result, split)
                 print("\n")
 
             self.cache_engine.remove_all_schemas()
@@ -302,8 +302,7 @@ def main(llm_config_path: str = os.path.join('./', "config/llm_config_llama2_7b.
     if test_latency:
         eval.run_latency_eval()
     else:
-        eval.run(cache_batch_size, split, verbose)
-
+        eval.run(split, verbose)
 
 if __name__ == "__main__":
     fire.Fire(main)
