@@ -1,11 +1,9 @@
 {
-
   "arch": "llama",
-  "log_name": "llama2-13b",
-  "name": "meta-llama/Llama-2-13b-chat-hf",
+  "log_name": "llama2-7b",
+  "name": "meta-llama/Llama-2-7b-chat-hf",
   "load_in_8bit": true,
   "device_map": "auto",
   "max_tokens": 3500,
   "max_ctx_length": 4096
-
 }

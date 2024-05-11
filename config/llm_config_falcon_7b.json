@@ -1,7 +1,7 @@
 {
   "arch": "falcon",
-  "log_name": "falcon-40b",
-  "name": "tiiuae/falcon-40b-instruct",
+  "log_name": "falcon-7b",
+  "name": "tiiuae/falcon-7b-instruct",
   "load_in_8bit": true,
   "device_map": "auto",
   "max_tokens": 1500,

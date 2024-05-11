@@ -91,9 +91,6 @@ class Eval:
             case "multi_news":
                 self.dataset = MultiNews()
 
-            case "ms_marco":
-                self.dataset = MSMarcoV1()
-
             case "narrativeqa":
                 self.dataset = LongBench("narrativeqa")
 
@@ -293,8 +290,8 @@ def seed_everything(seed):
     torch.cuda.manual_seed_all(seed)
 
 
-def main(llm_config_path: str = os.path.join('./', "config/llm_config_llama2.json"),
-         dataset: str = "narrativeqa", enable_cache=False, split=(0, 1),
+def main(llm_config_path: str = os.path.join('./', "config/llm_config_llama2_7b.json"),
+         dataset: str = "narrativeqa", enable_cache=False, cache_batch_size=1, split=(0, 1),
          test_latency=False,
          use_cpu_for_inference=False,
          verbose=False):

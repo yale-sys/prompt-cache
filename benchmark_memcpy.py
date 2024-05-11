@@ -12,6 +12,8 @@ NUM_LAYERS = 30
 SEQ_LEN = 5000
 CACHE_DIM = (40, SEQ_LEN, 128)
 
+print('loaded')
+
 
 def create_cache(device):
     return [(torch.rand(CACHE_DIM, dtype=torch.float16, device=device),

@@ -45,7 +45,7 @@ def main(result_file):
         results = [json.loads(line) for line in f]
         total_score = 0.
         for result in results:
-            response = result["response"].split('</s>')[0]
+            response = result["response"]
             answers = result["answers"]
 
             score = 0.

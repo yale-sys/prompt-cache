@@ -1,6 +1,9 @@
 {
+  "arch": "mpt",
+  "log_name": "mpt-7b",
   "name": "mosaicml/mpt-7b-chat-8k",
   "load_in_8bit": true,
   "device_map": "auto",
-  "max_tokens": 3500
+  "max_tokens": 3500,
+  "max_ctx_length": 4096
 }

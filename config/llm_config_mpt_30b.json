@@ -1,6 +1,11 @@
 {
+
+  "arch": "mpt",
+  "log_name": "mpt-30b",
   "name": "mosaicml/mpt-30b-chat",
   "load_in_8bit": true,
   "device_map": "auto",
-  "max_tokens": 3500
+  "max_tokens": 3500,
+  "max_ctx_length": 4096
+
 }
