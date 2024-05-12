@@ -1,19 +1,14 @@
 import random
 import re
-import sys
 
 import numpy as np
 import torch.cuda
 import fire
-from datasets import load_dataset
 
 from promptcache.model import Llama2, Falcon, Mpt, CodeLlama
-from transformers import (
-    AutoTokenizer, LlamaForCausalLM, LlamaTokenizer,
-)
+
 from promptcache import Prompt, CompactSpaces, read_file, CacheEngine, \
     GenerationEngine, GenerationParameters, llama2_template
-from promptcache.prompt import apply_preproc
 
 
 def escape_tags(input_str):
@@ -26,7 +21,7 @@ def escape_tags(input_str):
 
 
 def main(enable_cache=True):
-    enable_cpu_inference = True
+    enable_cpu_inference = False
     disable_prompt_cache = not enable_cache
 
     lm_for_cache = CodeLlama("codellama/CodeLlama-7b-Instruct-hf",

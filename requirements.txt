@@ -1,0 +1,13 @@
+astor==0.8.1
+datasets==2.14.7
+fire==0.6.0
+fuzzywuzzy==0.18.0
+jieba==0.42.1
+lxml==5.2.1
+numpy==1.26.4
+Requests==2.31.0
+rouge==1.0.1
+termcolor==2.4.0
+torch==2.3.0
+tqdm==4.66.4
+transformers==4.34.0
