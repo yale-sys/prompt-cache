@@ -9,22 +9,20 @@ from .benchmark_base import Benchmark, Entry
 from .dataset_download import load_documentation_summary
 from .utils import XMLSchemaBuilder
 
-_document_schema_name = "document_summary"
 _document_header = "Document"
-_document_dataset = "train"
+_document_dataset = "validation"
 _document_system_description = "Dialogues between a user and an AI about the document provided by the user with the aim of being helpful, aware, and accurate."
 _document_assistant_description = "Sure. I have read the document. give me any instructions regarding summarization, and I will try to follow them."
 _document_user_summary = "Summarize the above document in around THREE sentences:"
 
 MAX_DOCUMENT_LENGTH = 2560
 
-
 class MultiNews(Benchmark):
     def __init__(self):
         super().__init__("multi_news")
         self.next_query_idx = 0
 
-    def init(self, limit_entries=0, verbose=False):
+    def init(self, limit_entries=None, verbose=False):
         """
         Download (one time) and load the dataset to run; 
         Do any preprocessing required for running this benchmark.
@@ -36,9 +34,9 @@ class MultiNews(Benchmark):
         # Now we can generate xml files
         assert self.dataset is not None
         schema_file_name = "schema_summary_sample.xml"
-        self._generate_xml()
+        self._generate_xml(limit_entries)
 
-    def _generate_xml(self, limit_entries=10):
+    def _generate_xml(self, limit_entries):
         # Generate xml files
         # - In this version, we build the xml file per entry
         count = 0
@@ -107,3 +105,8 @@ class MultiNews(Benchmark):
         assert response_from_llm != ""
         raise NotImplementedError(
             "This method should call utility function to measure how the response is closer to the expected answer.")
+
+if __name__ == '__main__':
+    mn = MultiNews()
+    mn.init()
+    print(mn.get_entry_count())

@@ -1,9 +1,10 @@
 {
     "default": {
-        "llm_config_path": "./config/mpt.json",
+        "llm_config_path": "./config/llm_config_llama2.json",
         "split": "0,1"
     },
     "benchmarks": [
+
         {"dataset": "narrativeqa"},
         {"dataset": "qasper"},
         {"dataset": "multifieldqa_en"},
@@ -16,11 +17,10 @@
         {"dataset": "trec"},
         {"dataset": "triviaqa"},
         {"dataset": "passage_count"},
-        {"dataset": "passage_retrieval_en"},
-        {"dataset": "ms_marco"},
-        {"dataset": "squad_v2"}
+        {"dataset": "passage_retrieval_en"}
     ],
     "okay_so_far_benchmarks" :[
+
     ],
     "skipped_benchmarks": [
         {"dataset": "multi_news", "reason": "We will use Longbench version, multi_news_log"},
@@ -29,20 +29,21 @@
         {"dataset": "samsum", "reason": "code syntax interferes with xml syntax of prompt cache"},
         {"dataset": "lsht", "reason": "out of memory"},
         {"dataset": "vcsum", "reason": "out of memory"},
-        {"dataset": "dureader", "reason": "out of memory"}
+        {"dataset": "dureader", "reason": "out of memory"},
+        {"dataset": "ms_marco", "reason": "bad output"}
     ],
     "llm_list": [
         {
             "llm": "falcon",
-            "config_name": "./config/llm_config_falcon.json"
+            "config_name": "./config/llm_config_falcon_40b.json"
         },
         {
             "llm": "mpt",
-            "config_name": "./config/llm_config_mpt.json"
+            "config_name": "./config/llm_config_mpt_30b.json"
         },
         {
             "llm": "llama2",
-            "config_name": "./config/llm_config_llama2.json"
+            "config_name": "./config/llm_config_llama2_13b.json"
         }
     ]
 }
