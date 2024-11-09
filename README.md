@@ -241,7 +241,7 @@ python eval.py --help
 @article{gim2023prompt,
   title={Prompt cache: Modular attention reuse for low-latency inference},
   author={Gim, In and Chen, Guojun and Lee, Seung-seob and Sarda, Nikhil and Khandelwal, Anurag and Zhong, Lin},
-  journal={Proceedings of Machine learning and systems},
-  year={2024}
+  journal={arXiv preprint arXiv:2311.04934},
+  year={2023}
 }
 ```
