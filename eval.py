@@ -8,7 +8,7 @@ import os
 import datetime
 from tqdm import tqdm
 from benchmark.longbench import LongBench
-from promptcache.model import Llama2, Falcon, Mpt
+from promptcache.model import Llama2, Falcon, Mpt, Qwen
 from promptcache import Prompt, CompactSpaces, read_file, CacheEngine, \
     GenerationEngine, GenerationParameters
 
@@ -30,7 +30,7 @@ class Eval:
         self.enable_cache = enable_cache
         self.use_cpu_for_inference = use_cpu_for_inference
 
-        self.model_name = self.llm_config["name"]
+        self.model_name = self.llm_config["name"].lower()
         if "llama" in self.model_name:
             self.model_name = "llama"
             self.lm_for_caching = Llama2(name=self.llm_config['name'], device_map="auto", load_in_8bit=True)
@@ -40,6 +40,9 @@ class Eval:
         elif "mpt" in self.model_name:
             self.model_name = "mpt"
             self.lm_for_caching = Mpt(name=self.llm_config['name'], device_map="auto", load_in_8bit=True)
+        elif "qwen" in self.model_name:
+            self.model_name = "qwen"
+            self.lm_for_caching = Qwen(name=self.llm_config['name'], device_map="auto", load_in_8bit=True)
         else:
             raise ValueError("Invalid model name")
 
@@ -50,6 +53,8 @@ class Eval:
                 self.lm = Falcon(name=self.llm_config['name'], device_map=None)
             elif "mpt" in self.model_name:
                 self.lm = Mpt(name=self.llm_config['name'], device_map=None)
+            elif "qwen" in self.model_name:
+                self.lm = Qwen(name=self.llm_config['name'], device_map=None)
         else:
             self.lm = self.lm_for_caching
 

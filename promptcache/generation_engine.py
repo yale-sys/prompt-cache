@@ -79,7 +79,8 @@ class GenerationEngine:
 
         device = self.lm.device
 
-        position_offset = max(position_ids) + 1
+        cache_seq_len = cache[0][0].shape[1] if cache is not None and len(cache) > 0 else 0
+        position_offset = max(max(position_ids) + 1, cache_seq_len + len(token_ids))
         past_key_values = None
         new_token_id = 0
 
@@ -99,7 +100,7 @@ class GenerationEngine:
 
                 # add redundant batch dim
                 if cache is not None:
-                    cache = [(k[0].unsqueeze(0), k[1].unsqueeze(0)) for k in cache]
+                    cache = tuple((k[0].unsqueeze(0), k[1].unsqueeze(0)) for k in cache)
 
                 start = torch.cuda.Event(enable_timing=True)
                 end = torch.cuda.Event(enable_timing=True)
@@ -115,8 +116,8 @@ class GenerationEngine:
                 response_time = inference_time
                 # print(f'Response time: {inference_time:.2f} ms')
                 # pretty print using termcolor
-                print(termcolor.colored(f'Prefill latency: {inference_time:.2f} ms', 'yellow'))
-
+                print(termcolor.colored(f'Prefill latency: {response_time:.2f} ms', 'yellow'))
+                
                 logits = out.logits
                 past_key_values = out.past_key_values
 
@@ -187,13 +188,13 @@ class GenerationEngine:
                 partially_stopped = False
 
                 for each_stop in params.stop_str:
-                    pos = new_output.rfind(each_stop, 0)
+                    pos = new_output.find(each_stop)
                     if pos != -1:
                         new_output = new_output[:pos]
                         stopped = True
                         break
                     else:
-                        partially_stopped = is_partial_stop(output, each_stop)
+                        partially_stopped = is_partial_stop(new_output, each_stop)
                         if partially_stopped:
                             break
 

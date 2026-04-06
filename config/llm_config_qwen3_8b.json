@@ -1,0 +1,9 @@
+{
+  "arch": "qwen",
+  "log_name": "qwen3-8b",
+  "name": "Qwen/Qwen3-8B-Instruct",
+  "load_in_8bit": true,
+  "device_map": "auto",
+  "max_tokens": 3500,
+  "max_ctx_length": 8192
+}

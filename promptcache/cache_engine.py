@@ -5,7 +5,7 @@ from tqdm import tqdm
 import itertools
 
 import torch
-
+import termcolor
 from .model import LanguageModel
 from .prompt import Prompt, ModuleRef
 from .schema import Parameter, TokenSequence, UnionModule, Schema, Path, Module
@@ -92,18 +92,22 @@ class PromptCache:
     max_ctx_length: int
     num_head: int
     head_dim: int
+    target_device: torch.device
     device_cache: KVCache
 
     # hidden_dim is usually num_head * head_dim
-    def __init__(self, max_ctx_length: int, num_layers: int, num_head: int, head_dim: int, target_device: torch.device):
+    def __init__(self, max_ctx_length: int, num_layers: int, num_head: int, head_dim: int, target_device: torch.device,
+                 dtype: torch.dtype = torch.float16):
 
         self.max_ctx_length = max_ctx_length
         self.num_head = num_head
         self.head_dim = head_dim
+        self.target_device = target_device
+        self.dtype = dtype
 
         self.device_cache = [
-            (torch.empty(num_head, max_ctx_length, head_dim, device=target_device, dtype=torch.half),  # key
-             torch.empty(num_head, max_ctx_length, head_dim, device=target_device, dtype=torch.half)) for _ in
+            (torch.empty(num_head, max_ctx_length, head_dim, device=target_device, dtype=self.dtype),  # key
+             torch.empty(num_head, max_ctx_length, head_dim, device=target_device, dtype=self.dtype)) for _ in
             range(num_layers)]
 
         # print(num_head, max_ctx_length, head_dim)
@@ -117,8 +121,7 @@ class PromptCache:
 
         # TODO: adopt in-place sorting to reduce redundant host-device memory copies
 
-        # cache rearrangement -> becomes new layout
-        modules_ordered = sorted(modules, key=lambda e: e.usage_counter, reverse=True)
+        modules_ordered = sorted(modules, key=lambda e: e.token_sequence.offset)
 
         retained = []
 
@@ -131,28 +134,33 @@ class PromptCache:
         offset = sum(map(len, retained))
         updates = modules_ordered[len(retained):]
 
-        # update the cache
-        for m in updates:
+        if len(updates) > 0:
+            for m in updates:
+                m.upload(self.target_device)
+
+            update_len = sum(map(len, updates))
             st = offset
-            ed = st + len(m)
+            ed = st + update_len
+            update_caches = [m.cache for m in updates]
 
             for i in range(len(self.device_cache)):
                 k_cache_tgt, v_cache_tgt = self.device_cache[i]
-                k_cache_src, v_cache_src = m.cache[i]
+                k_chunks = [cache_i[i][0] for cache_i in update_caches]
+                v_chunks = [cache_i[i][1] for cache_i in update_caches]
+                if len(k_chunks) == 1:
+                    k_merged = k_chunks[0]
+                    v_merged = v_chunks[0]
+                else:
+                    k_merged = torch.cat(k_chunks, dim=1)
+                    v_merged = torch.cat(v_chunks, dim=1)
+                k_cache_tgt[:, st:ed, :].copy_(k_merged, non_blocking=True)
+                v_cache_tgt[:, st:ed, :].copy_(v_merged, non_blocking=True)
 
-                # print('k_src', k_cache_src.shape)
-                # print('v_src', v_cache_src.shape)
-                # print('k_tgt', k_cache_tgt.shape)
-                # print('v_tgt', v_cache_tgt.shape)
-
-                k_cache_tgt[:, st:ed, :].copy_(k_cache_src, non_blocking=True)
-                v_cache_tgt[:, st:ed, :].copy_(v_cache_src, non_blocking=True)
-
-            offset += len(m)
+            offset = ed
 
         # re-organize the cache
 
-        self.staged = modules
+        self.staged = modules_ordered
         self.length = offset
 
     def __len__(self):
@@ -243,7 +251,7 @@ class SchemaCache:
                 d_output = self.lm(
                     input_ids=torch.tensor(batch_token_ids_padded, device=self.lm.device, dtype=torch.long),
                     position_ids=torch.tensor(batch_position_ids_padded, device=self.lm.device, dtype=torch.long),
-                    attention_mask=torch.tensor(attn_mask, device=self.lm.device, dtype=torch.float16),
+                    attention_mask=torch.tensor(attn_mask, device=self.lm.device, dtype=torch.bool),
                     use_cache=True
                 )
 
@@ -341,13 +349,17 @@ class CacheEngine:
         self.target_device = lm.device if target_device is None else target_device
 
         num_layers, num_head, head_dim = lm.get_cache_shape()
+        cache_dtype = getattr(lm.hf_model, "dtype", torch.float16)
+        if not isinstance(cache_dtype, torch.dtype) or not cache_dtype.is_floating_point:
+            cache_dtype = torch.float16
 
         self.prompt_cache = PromptCache(
             max_ctx_length=max_ctx_length,
             num_layers=num_layers,
             num_head=num_head,
             head_dim=head_dim,
-            target_device=self.target_device
+            target_device=self.target_device,
+            dtype=cache_dtype
         )
 
     def add_schema(self, schema: Union[str, Schema],
@@ -472,6 +484,11 @@ class CacheEngine:
 
         input_ids = list(itertools.chain(*argument_ids_list))
         position_ids = list(itertools.chain(*argument_pos_ids_list))
+        if len(position_ids) > 0:
+            sorted_pairs = sorted(zip(position_ids, input_ids))
+            position_ids, input_ids = zip(*sorted_pairs)
+            position_ids = list(position_ids)
+            input_ids = list(input_ids)
 
         if no_cache:
             orig_input_ids = list(itertools.chain(*orig_ids_list))
@@ -486,8 +503,7 @@ class CacheEngine:
             torch.cuda.synchronize()
             cache_time = start.elapsed_time(end)
 
-            # print(f'Cache overhead: {cache_time:.2f} ms')
-
+            print(termcolor.colored(f'Cache overhead: {cache_time:.2f} ms', 'yellow'))
             vv = list(range(len(orig_position_ids)))
 
             return orig_input_ids, vv, cache_time, None
@@ -512,7 +528,7 @@ class CacheEngine:
             for i in range(len(cache)):
                 cache[i] = (self.lm.read_k_hook(cache[i][0]), self.lm.read_v_hook(cache[i][1]))
 
-            # print(f'Cache overhead: {cache_time:.2f} ms')
+            print(termcolor.colored(f'Cache overhead: {cache_time:.2f} ms', 'yellow'))
 
             if return_full_position_ids:
                 orig_position_ids = list(itertools.chain(*orig_pos_ids_list))

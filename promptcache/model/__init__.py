@@ -5,6 +5,11 @@ import re
 
 from transformers import AutoTokenizer, AutoModelForCausalLM, LlamaTokenizer, PreTrainedTokenizer, \
     PretrainedConfig, PreTrainedModel, CodeLlamaTokenizer
+try:
+    from transformers.cache_utils import Cache, DynamicCache
+except ImportError:
+    Cache = None
+    DynamicCache = None
 
 from promptcache.model.falcon import FalconForCausalLM
 from promptcache.model.llama2 import LlamaForCausalLM
@@ -272,7 +277,7 @@ class Mpt(LanguageModel):
             assistant=("", "<|im_end|>\n"))
 
         self.formatter = conv
-        self.use_full_position_ids = True
+        self.use_full_position_ids = False
 
         stop_token_ids = [50278, 0]
         stop_str = []
@@ -293,3 +298,67 @@ class Mpt(LanguageModel):
     #
     # def read_k_hook(self, v_cache: torch.Tensor) -> torch.Tensor:
     #     return v_cache.transpose(1, 2)
+
+
+class Qwen(LanguageModel):
+    def __init__(self, name="Qwen/Qwen2.5-7B-Instruct", **kwargs):
+        tokenizer = AutoTokenizer.from_pretrained(name, trust_remote_code=True)
+        model = AutoModelForCausalLM.from_pretrained(name, trust_remote_code=True, **kwargs)
+
+        conv = FormatConversation(
+            system=("<|im_start|>system\n", "<|im_end|>\n", ""),
+            user=("<|im_start|>user\n", "<|im_end|>\n<|im_start|>assistant\n"),
+            assistant=("", "<|im_end|>\n")
+        )
+
+        self.formatter = conv
+        self.use_full_position_ids = True
+
+        stop_token_ids = [tokenizer.eos_token_id]
+        if hasattr(tokenizer, "convert_tokens_to_ids"):
+            im_end_id = tokenizer.convert_tokens_to_ids("<|im_end|>")
+            if isinstance(im_end_id, int) and im_end_id >= 0 and im_end_id not in stop_token_ids:
+                stop_token_ids.append(im_end_id)
+
+        stop_str = ["<|im_end|>"]
+
+        super().__init__(name, model, tokenizer, stop_token_ids, stop_str)
+
+    def get_formatter(self) -> Callable[[str], str]:
+        return self.formatter
+
+    def get_cache_shape(self) -> Tuple[int, int, int]:
+        num_head = getattr(self.hf_model.config, "num_key_value_heads", self.hf_model.config.num_attention_heads)
+        head_dim = self.hf_model.config.hidden_size // self.hf_model.config.num_attention_heads
+        return self.hf_model.config.num_hidden_layers, num_head, head_dim
+
+    @staticmethod
+    def _is_legacy_kv_cache(past_key_values) -> bool:
+        if not isinstance(past_key_values, (list, tuple)):
+            return False
+        if len(past_key_values) == 0:
+            return True
+        first = past_key_values[0]
+        return isinstance(first, (list, tuple)) and len(first) == 2
+
+    def __call__(self, **kwargs):
+        past_key_values = kwargs.get("past_key_values", None)
+        if past_key_values is not None and DynamicCache is not None:
+            is_cache_obj = Cache is not None and isinstance(past_key_values, Cache)
+            if not is_cache_obj and self._is_legacy_kv_cache(past_key_values):
+                if hasattr(DynamicCache, "from_legacy_cache"):
+                    new_cache = DynamicCache.from_legacy_cache(tuple(past_key_values))
+                else:
+                    new_cache = DynamicCache()
+                    for i, (k, v) in enumerate(past_key_values):
+                        new_cache.update(k, v, layer_idx=i)
+                kwargs["past_key_values"] = new_cache
+
+        if "position_ids" in kwargs and kwargs.get("input_ids") is not None:
+            input_len = kwargs["input_ids"].shape[1]
+            if kwargs["position_ids"].shape[1] != input_len:
+                kwargs["position_ids"] = kwargs["position_ids"][:, -input_len:]
+            if kwargs.get("past_key_values") is not None:
+                kwargs["cache_position"] = kwargs["position_ids"][0]
+
+        return super().__call__(**kwargs)

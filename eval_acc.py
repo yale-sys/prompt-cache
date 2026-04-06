@@ -9,7 +9,7 @@ import os
 import datetime
 from tqdm import tqdm
 from benchmark.longbench import LongBench
-from promptcache.model import Llama2, Falcon, Mpt
+from promptcache.model import Llama2, Falcon, Mpt, Qwen
 from promptcache import Prompt, CompactSpaces, read_file, CacheEngine, \
     GenerationEngine, GenerationParameters
 
@@ -81,6 +81,8 @@ class Eval:
             self.lm = Falcon(name=self.model_name, device_map={"": gpu_id}, load_in_8bit=True)
         elif self.model_arch == "mpt":
             self.lm = Mpt(name=self.model_name, device_map={"": gpu_id}, load_in_8bit=True)
+        elif self.model_arch == "qwen":
+            self.lm = Qwen(name=self.model_name, device_map={"": gpu_id}, load_in_8bit=True)
         else:
             raise ValueError("Invalid model name")
 
